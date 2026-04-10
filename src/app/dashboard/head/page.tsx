@@ -59,7 +59,10 @@ export default function HeadDashboard() {
         used: false,
       });
       const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://kairodocs-nojs.vercel.app';
-      setInviteLink(`${baseUrl}/signup?invite=${token}`);
+      const r = "user";
+      const dName = headProfile?.departmentName || "";
+      const invName = headProfile?.name || user?.email || "";
+      setInviteLink(`${baseUrl}/signup?invite=${token}&role=${r}&deptName=${encodeURIComponent(dName)}&inviter=${encodeURIComponent(invName)}`);
     } catch (e: any) {
       alert("Failed to generate link: " + e.message);
     } finally {

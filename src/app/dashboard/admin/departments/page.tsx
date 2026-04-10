@@ -51,7 +51,10 @@ export default function AdminDepartments() {
         used: false,
       });
       const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://kairodocs-nojs.vercel.app';
-      setHeadInviteLink(`${baseUrl}/signup?invite=${token}`);
+      const r = "head";
+      const dName = dept?.name || "";
+      const invName = adminName || "";
+      setHeadInviteLink(`${baseUrl}/signup?invite=${token}&role=${r}&deptName=${encodeURIComponent(dName)}&inviter=${encodeURIComponent(invName)}`);
     } catch (e: any) {
       alert("Failed to generate link: " + e.message);
     } finally {

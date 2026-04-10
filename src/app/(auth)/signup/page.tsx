@@ -25,28 +25,20 @@ function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get("invite");
+  const urlRole = searchParams.get("role") as "user" | "head" | null;
+  const urlDeptName = searchParams.get("deptName");
+  const urlInviter = searchParams.get("inviter");
 
-  // On mount, look up the invite token to determine role
+  // On mount, use URL params for invite info to bypass Firebase Rules
   useEffect(() => {
     if (!inviteToken) return;
 
-    const checkInvite = async () => {
-      setInviteChecking(true);
-      try {
-        const snap = await get(ref(database, `invites/${inviteToken}`));
-        if (snap.exists()) {
-          const data = snap.val();
-          setInviteInfo(data);
-          setInviteRole(data.role || "user");
-        }
-      } catch (e) {
-        console.error("Failed to fetch invite:", e);
-      } finally {
-        setInviteChecking(false);
-      }
-    };
-    checkInvite();
-  }, [inviteToken]);
+    setInviteInfo({
+      departmentName: urlDeptName || null,
+      createdByName: urlInviter || null,
+    });
+    setInviteRole(urlRole || "user");
+  }, [inviteToken, urlRole, urlDeptName, urlInviter]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,14 +56,14 @@ function SignupForm() {
         name,
         phone,
         role: inviteRole,
-        departmentId: inviteInfo?.departmentId || null,
         departmentName: inviteInfo?.departmentName || null,
-        invitedBy: inviteInfo?.createdBy || null,
+        invitedBy: inviteInfo?.createdByName || null,
         createdAt: new Date().toISOString(),
       });
 
       // Mark invite as used
-      if (inviteToken && inviteInfo) {
+      if (inviteToken) {
+        await set(ref(database, `invites/${inviteToken}/used`), true);
         await set(ref(database, `invites/${inviteToken}/usedBy`), user.uid);
         await set(ref(database, `invites/${inviteToken}/usedAt`), new Date().toISOString());
       }
@@ -103,12 +95,11 @@ function SignupForm() {
           <p className="mt-2 text-slate-500 dark:text-slate-400">Create a new account</p>
         </div>
 
-        {/* Invite Banner */}
         {inviteChecking ? (
           <div className="mb-4 rounded-lg bg-slate-50 dark:bg-[#0a0a0a] p-3 text-sm text-slate-500 dark:text-slate-400 animate-pulse">
             Verifying invitation...
           </div>
-        ) : inviteInfo && (
+        ) : inviteInfo && inviteToken ? (
           <div className={`mb-4 rounded-lg p-3 text-sm border flex items-center gap-2 ${
             inviteRole === "head"
               ? "bg-purple-50 text-purple-800 border-purple-200"
@@ -118,12 +109,19 @@ function SignupForm() {
               ? <Shield className="h-4 w-4 shrink-0" />
               : <User className="h-4 w-4 shrink-0" />
             }
-            <span>
-              You've been invited as a <strong>{inviteRole === "head" ? "Department Head" : "User"}</strong>
-              {inviteInfo.createdByName ? ` by ${inviteInfo.createdByName}` : ""}.
-            </span>
+            <div className="flex flex-col gap-0.5 text-left">
+              <span>
+                You've been invited as a <strong>{inviteRole === "head" ? "Department Head" : "User"}</strong>
+                {inviteInfo.createdByName ? ` by ${inviteInfo.createdByName}` : ""}.
+              </span>
+              {inviteInfo.departmentName && (
+                <span className="font-semibold text-xs opacity-90 block">
+                  Assigned Department: {inviteInfo.departmentName}
+                </span>
+              )}
+            </div>
           </div>
-        )}
+        ) : null}
 
         {error && (
           <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-900/30 p-3 text-sm text-red-600 dark:text-red-400">
