@@ -5,17 +5,6 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
-    // Stub browser-only globals so pdfjs-dist can initialize in Node
-    const g = globalThis as any;
-    if (!g.DOMMatrix)          g.DOMMatrix          = class {};
-    if (!g.ImageData)          g.ImageData          = class {};
-    if (!g.Path2D)             g.Path2D             = class {};
-    if (!g.HTMLCanvasElement)  g.HTMLCanvasElement  = class {};
-
-    // Dynamic ESM import — avoids the build-time execution that crashes Vercel
-    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs' as string);
-    pdfjs.GlobalWorkerOptions.workerSrc = ''; // disable web worker in Node
-
     const formData = await req.formData();
     const file = formData.get('pdf') as File | null;
 
@@ -25,23 +14,13 @@ export async function POST(req: Request) {
     if (file.size > 10 * 1024 * 1024)
       return NextResponse.json({ error: 'File too large. Maximum is 10MB.' }, { status: 400 });
 
-    const buffer = await file.arrayBuffer();
-    const loadingTask = pdfjs.getDocument({ data: new Uint8Array(buffer), useWorkerFetch: false, isEvalSupported: false });
-    const doc = await loadingTask.promise;
-    const numPages = doc.numPages;
+    const buffer = new Uint8Array(await file.arrayBuffer());
 
-    const pageTexts: string[] = [];
-    for (let p = 1; p <= numPages; p++) {
-      const page = await doc.getPage(p);
-      const content = await page.getTextContent();
-      const pageText = (content.items as any[])
-        .map((item: any) => item.str ?? '')
-        .join(' ');
-      pageTexts.push(pageText);
-    }
+    // unpdf is designed specifically for Node.js/serverless — no worker, no canvas needed
+    const { extractText } = await import('unpdf');
+    const { text: rawText, totalPages } = await extractText(buffer, { mergePages: true });
 
-    const text = pageTexts
-      .join('\n\n')
+    const text = (rawText ?? '')
       .replace(/\r\n/g, '\n')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
@@ -55,7 +34,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       text,
-      pages: numPages,
+      pages: totalPages,
       fileName: file.name,
       charCount: text.length,
     });
