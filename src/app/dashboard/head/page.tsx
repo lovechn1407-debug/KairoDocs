@@ -14,6 +14,7 @@ export default function HeadDashboard() {
   const [copied, setCopied] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [headProfile, setHeadProfile] = useState<any>(null);
+  const [departmentUsers, setDepartmentUsers] = useState<any[]>([]);
   const [stats, setStats] = useState({ pending: 0, approved: 0, users: 0 });
 
   useEffect(() => {
@@ -28,17 +29,21 @@ export default function HeadDashboard() {
       get(ref(database, "submissions")),
       get(ref(database, "users"))
     ]).then(([subsSnap, usersSnap]) => {
-      let pending = 0, approved = 0, totalUsers = 0;
+      let pending = 0, approved = 0;
+      let headUsers: any[] = [];
+      
       if (subsSnap.exists()) {
         const subs = Object.values(subsSnap.val()) as any[];
         pending = subs.filter(s => s.status === "Pending").length;
         approved = subs.filter(s => s.status === "Approved").length;
       }
       if (usersSnap.exists()) {
-        const users = Object.values(usersSnap.val()) as any[];
-        totalUsers = users.length;
+        const allUsers = Object.values(usersSnap.val()) as any[];
+        // Filter users who were invited by this specific head
+        headUsers = allUsers.filter(u => u.invitedBy === user.uid);
+        setDepartmentUsers(headUsers);
       }
-      setStats({ pending, approved, users: totalUsers });
+      setStats({ pending, approved, users: headUsers.length });
     });
   }, [user]);
 
@@ -148,10 +153,55 @@ export default function HeadDashboard() {
             <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center mb-4">
               <Users className="h-6 w-6" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Total Users</h3>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Total Users Under You</h3>
             <p className="text-3xl font-bold mt-2">{stats.users}</p>
           </motion.div>
         </div>
+
+        {/* Registered Users Section */}
+        <section className="mt-12 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800/50 overflow-hidden">
+          <div className="p-6 border-b border-slate-100 dark:border-slate-800/50 flex items-center gap-3">
+            <Users className="h-5 w-5 text-blue-600" />
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Registered Users Under You</h2>
+          </div>
+          
+          {departmentUsers.length === 0 ? (
+            <div className="p-12 text-center text-slate-500 dark:text-slate-400">
+              <p>No users have registered using your invite link yet.</p>
+              <button 
+                onClick={handleGenerateLink}
+                className="mt-4 text-indigo-600 dark:text-indigo-400 font-medium hover:underline"
+              >
+                Generate an invite link to get started
+              </button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+                <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium">
+                  <tr>
+                    <th className="px-6 py-4">Name</th>
+                    <th className="px-6 py-4">Email</th>
+                    <th className="px-6 py-4">Phone</th>
+                    <th className="px-6 py-4">Join Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                  {departmentUsers.map((deptUser) => (
+                    <tr key={deptUser.uid} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">{deptUser.name || "N/A"}</td>
+                      <td className="px-6 py-4">{deptUser.email}</td>
+                      <td className="px-6 py-4">{deptUser.phone || "N/A"}</td>
+                      <td className="px-6 py-4">
+                        {deptUser.createdAt ? new Date(deptUser.createdAt).toLocaleDateString() : "Unknown"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
       </div>
     </ProtectedRoute>
   );
