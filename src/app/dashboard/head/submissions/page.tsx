@@ -96,6 +96,27 @@ export default function HeadSubmissions() {
       }
 
       await update(ref(database, `submissions/${subId}`), updates);
+
+      // ── Auto-ingest into Pinecone as a Precedent when approved ──────────
+      if (newStatus === "Approved" && selectedSub?.content) {
+        // Fire-and-forget: don't await so approval is instant even if ingest is slow
+        fetch("/api/ingest-approved", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            documentContent: selectedSub.content,
+            projectName: selectedSub.projectName ?? "Approved Document",
+            templateName: selectedSub.templateName ?? "",
+            submissionId: subId,
+            userEmail: selectedSub.userEmail ?? "",
+          }),
+        }).then(r => r.json()).then(d => {
+          console.log("[AutoIngest]", d.message ?? d.error);
+        }).catch(e => {
+          console.warn("[AutoIngest] Failed (non-fatal):", e.message);
+        });
+      }
+
       alert(`Document marked as ${newStatus}`);
       setSelectedSub(null);
       setFeedbackText("");
