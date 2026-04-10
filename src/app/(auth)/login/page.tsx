@@ -42,7 +42,7 @@ export default function LoginPage() {
     } catch (err: any) {
       setError("Failed to login. Please check your credentials.");
     } finally {
-      if (!router) setLoading(false); // only toggle if not redirecting
+      setLoading(false);
     }
   };
 
