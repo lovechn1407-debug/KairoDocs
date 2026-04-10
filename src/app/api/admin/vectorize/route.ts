@@ -18,7 +18,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields: type, title, or text" }, { status: 400 });
     }
 
-    console.log(`[Vectorize] Starting: "${title}" | type=${type} | textLength=${trimmedText.length}`);
+    // Cap text to 25,000 chars to prevent Vercel timeout on very large PDFs
+    const MAX_CHARS = 25_000;
+    const processText = trimmedText.length > MAX_CHARS
+      ? (() => { console.warn(`[Vectorize] Text truncated from ${trimmedText.length} to ${MAX_CHARS} chars`); return trimmedText.slice(0, MAX_CHARS); })()
+      : trimmedText;
+
+    console.log(`[Vectorize] Starting: "${title}" | type=${type} | textLength=${processText.length}`);
 
     // Larger chunks = fewer API calls to HuggingFace. MiniLM handles 512 tokens (~800 chars).
     const splitter = new RecursiveCharacterTextSplitter({
@@ -26,11 +32,14 @@ export async function POST(req: Request) {
       chunkOverlap: 100,
     });
 
-    const chunks = await splitter.createDocuments([trimmedText]);
+    const chunks = await splitter.createDocuments([processText]);
     console.log(`[Vectorize] Chunks produced: ${chunks.length}`);
 
     if (chunks.length === 0) {
       return NextResponse.json({ error: "Text produced 0 chunks. Please provide longer or more substantive content." }, { status: 400 });
+    }
+    if (chunks.length > 60) {
+      return NextResponse.json({ error: `Document produces ${chunks.length} chunks which is too large for a single upload. Please split the document into smaller sections (max ~25,000 characters per upload).` }, { status: 400 });
     }
 
     // ── Batch embed ALL chunks in one (or a few) HuggingFace API call(s) ───

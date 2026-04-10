@@ -388,8 +388,16 @@ export default function TemplateEngine() {
           effectiveDate: ragDate
         })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      // Safely parse response — Vercel can return HTML on timeout, not JSON
+      const rawText = await res.text();
+      let data: any = {};
+      try { data = JSON.parse(rawText); } catch {
+        throw new Error(res.status === 504 || res.status === 502
+          ? 'The server took too long. Try uploading a shorter text or splitting the PDF.'
+          : `Server error (${res.status}). The document may be too large.`);
+      }
+      if (!res.ok) throw new Error(data.error ?? `Server returned ${res.status}`);
+
 
       // Write registry entry client-side with authenticated Firebase SDK
       if (data.registryEntry) {

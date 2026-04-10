@@ -36,7 +36,7 @@ export async function embedText(text: string): Promise<number[]> {
  * Automatically falls back to sequential batches of 32 if the array is large.
  */
 export async function embedBatch(texts: string[]): Promise<number[][]> {
-  const BATCH_SIZE = 32; // HuggingFace free tier is comfortable with 32 at a time
+  const BATCH_SIZE = 8; // Safe for HuggingFace free tier — stays well within rate limits
   const hf = getClient();
   const results: number[][] = [];
 
