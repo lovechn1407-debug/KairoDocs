@@ -144,7 +144,7 @@ export default function TemplateEngine() {
       useImageEditor: true,
     },
     table: {
-      allowCellResize: true,
+      splitBlockOnInsertTable: false,
     },
     fontValues: {
       "Arial,Helvetica,sans-serif": "Arial",

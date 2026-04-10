@@ -13,7 +13,7 @@ export async function uploadDocumentToTelegram(fileBuffer: Buffer, filename: str
   const formData = new FormData();
   formData.append("chat_id", TELEGRAM_CHAT_ID);
 
-  const fileBlob = new Blob([fileBuffer], { type: mimeType });
+  const fileBlob = new Blob([new Uint8Array(fileBuffer)], { type: mimeType });
   formData.append("document", fileBlob, filename);
 
   try {
