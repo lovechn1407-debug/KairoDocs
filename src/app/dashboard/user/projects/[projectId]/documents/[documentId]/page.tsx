@@ -196,8 +196,10 @@ export default function DocumentEditor() {
                     {document.versions.map((ver: any, i: number) => (
                       <div key={i} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
                         <div className="flex justify-between items-center mb-2">
-                          <h4 className="font-semibold text-slate-800">Version {i + 1}</h4>
-                          <span className="text-xs text-slate-500">{new Date(ver.savedAt).toLocaleString()}</span>
+                           <h4 className="font-semibold text-slate-800">
+                             Version {i + 1} {i === document.versions.length - 1 && <span className="text-blue-600 font-bold ml-1">(Current)</span>}
+                           </h4>
+                           <span className="text-xs text-slate-500">{new Date(ver.savedAt).toLocaleString()}</span>
                         </div>
                         <div className="mb-3 text-xs font-medium bg-slate-200 text-slate-700 inline-block px-2 py-0.5 rounded">
                           Status: {ver.status}

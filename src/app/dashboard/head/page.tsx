@@ -14,11 +14,31 @@ export default function HeadDashboard() {
   const [copied, setCopied] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [headProfile, setHeadProfile] = useState<any>(null);
+  const [stats, setStats] = useState({ pending: 0, approved: 0, users: 0 });
 
   useEffect(() => {
     if (!user?.uid) return;
+    
     get(ref(database, `users/${user.uid}`)).then(snap => {
       if (snap.exists()) setHeadProfile(snap.val());
+    });
+
+    // Fetch dashboard stats
+    Promise.all([
+      get(ref(database, "submissions")),
+      get(ref(database, "users"))
+    ]).then(([subsSnap, usersSnap]) => {
+      let pending = 0, approved = 0, totalUsers = 0;
+      if (subsSnap.exists()) {
+        const subs = Object.values(subsSnap.val()) as any[];
+        pending = subs.filter(s => s.status === "Pending").length;
+        approved = subs.filter(s => s.status === "Approved").length;
+      }
+      if (usersSnap.exists()) {
+        const users = Object.values(usersSnap.val()) as any[];
+        totalUsers = users.length;
+      }
+      setStats({ pending, approved, users: totalUsers });
     });
   }, [user]);
 
@@ -99,7 +119,7 @@ export default function HeadDashboard() {
               <FileText className="h-6 w-6" />
             </div>
             <h3 className="text-lg font-semibold text-slate-900">Pending Approvals</h3>
-            <p className="text-3xl font-bold mt-2">0</p>
+            <p className="text-3xl font-bold mt-2">{stats.pending}</p>
           </motion.div>
 
           <motion.div
@@ -112,7 +132,7 @@ export default function HeadDashboard() {
               <CheckCircle className="h-6 w-6" />
             </div>
             <h3 className="text-lg font-semibold text-slate-900">Approved Docs</h3>
-            <p className="text-3xl font-bold mt-2">0</p>
+            <p className="text-3xl font-bold mt-2">{stats.approved}</p>
           </motion.div>
 
           <motion.div
@@ -125,7 +145,7 @@ export default function HeadDashboard() {
               <Users className="h-6 w-6" />
             </div>
             <h3 className="text-lg font-semibold text-slate-900">Total Users</h3>
-            <p className="text-3xl font-bold mt-2">0</p>
+            <p className="text-3xl font-bold mt-2">{stats.users}</p>
           </motion.div>
         </div>
       </div>
