@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getIndex } from '@/lib/pinecone';
 import { embedText } from '@/lib/huggingface';
-import { RecursiveCharacterTextSplitter } from 'langchain/text_splitters';
+import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 
 export async function POST(req: Request) {
   try {
