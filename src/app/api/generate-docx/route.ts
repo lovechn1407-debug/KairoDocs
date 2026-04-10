@@ -12,55 +12,44 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No content provided.' }, { status: 400 });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const HTMLtoDOCX = require('html-to-docx');
+    // Dynamic ESM import — avoids bundling issues that cause "n is not a function" in Vercel prod
+    const htmlToDocxMod = await import('html-to-docx');
+    // Handle both default export and named export
+    const HTMLtoDOCX: Function = (htmlToDocxMod as any).default ?? htmlToDocxMod;
 
-    // Wrap content in a clean HTML document with professional styling
-    const fullHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <style>
-          body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6; margin: 0; padding: 0; }
-          h1 { font-size: 16pt; font-weight: bold; text-align: center; margin-bottom: 24pt; }
-          h2 { font-size: 13pt; font-weight: bold; margin-top: 18pt; margin-bottom: 6pt; border-bottom: 1px solid #333; padding-bottom: 2pt; }
-          h3 { font-size: 12pt; font-weight: bold; margin-top: 12pt; margin-bottom: 4pt; }
-          p { margin: 6pt 0; text-align: justify; }
-          ul, ol { margin: 6pt 0 6pt 24pt; }
-          li { margin: 3pt 0; }
-          table { width: 100%; border-collapse: collapse; margin: 12pt 0; }
-          th { background-color: #1e3a6e; color: white; font-weight: bold; padding: 6pt 8pt; border: 1px solid #333; }
-          td { padding: 4pt 8pt; border: 1px solid #ccc; vertical-align: top; }
-          strong { font-weight: bold; }
-          em { font-style: italic; }
-          div[style*="background:#fff7ed"] { background-color: #fff7ed; border-left: 4px solid #f97316; padding: 8pt; margin-bottom: 12pt; font-style: italic; color: #9a3412; }
-        </style>
-      </head>
-      <body>
-        ${htmlContent}
-      </body>
-      </html>
-    `;
+    const fullHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6; }
+    h1 { font-size: 16pt; font-weight: bold; text-align: center; margin-bottom: 24pt; }
+    h2 { font-size: 13pt; font-weight: bold; margin-top: 18pt; margin-bottom: 6pt; border-bottom: 1px solid #333; padding-bottom: 2pt; }
+    h3 { font-size: 12pt; font-weight: bold; margin-top: 12pt; margin-bottom: 4pt; }
+    p { margin: 6pt 0; text-align: justify; }
+    ul, ol { margin: 6pt 0 6pt 24pt; }
+    li { margin: 3pt 0; }
+    table { width: 100%; border-collapse: collapse; margin: 12pt 0; }
+    th { background-color: #1e3a6e; color: white; font-weight: bold; padding: 6pt 8pt; border: 1px solid #333; }
+    td { padding: 4pt 8pt; border: 1px solid #ccc; vertical-align: top; }
+    strong { font-weight: bold; }
+    em { font-style: italic; }
+  </style>
+</head>
+<body>${htmlContent}</body>
+</html>`;
 
     const docxOptions = {
       orientation: 'portrait',
-      pageSize: { width: 12240, height: 15840 }, // A4 in twips
-      margins: {
-        top: 1440,    // 1 inch
-        right: 1080,  // 0.75 inch
-        bottom: 1440,
-        left: 1080,
-      },
+      pageSize: { width: 12240, height: 15840 },
+      margins: { top: 1440, right: 1080, bottom: 1440, left: 1080 },
       title: documentName || templateName || 'Generated Document',
       creator: 'KairoDocs AI',
       description: `Generated using ${templateName || 'institutional template'} with Groq AI RAG`,
       font: 'Times New Roman',
-      fontSize: 24,       // half-points (12pt)
-      lineHeight: 276,    // 115% line height
-      headerType: 'default',
+      fontSize: 24,
+      lineHeight: 276,
       header: false,
-      footerType: 'default',
       footer: false,
       table: { row: { cantSplit: true } },
       pageNumber: false,
