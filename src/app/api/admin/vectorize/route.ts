@@ -10,7 +10,7 @@ const DB_URL = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL;
 
 export async function POST(req: Request) {
   try {
-    const { type, category = '', title, text, tags = [], version = '1.0', effectiveDate = '' } = await req.json();
+    const { type, category = '', subType = '', title, text, tags = [], version = '1.0', effectiveDate = '' } = await req.json();
 
     const trimmedText = (text || '').trim();
     if (!type || !title || !trimmedText) {
@@ -49,7 +49,8 @@ export async function POST(req: Request) {
         values: embedding,
         metadata: {
           type,
-          category,           // e.g. "MOU", "Invoice", "Purchase Order"
+          category,
+          subType,           // "structure" | "clauses" | "" (for precedents)
           title,
           tags: tags.join(','),
           version,
@@ -72,10 +73,10 @@ export async function POST(req: Request) {
     // Return vectorIds so the authenticated frontend can write the Firebase registry entry
     return NextResponse.json({
       success: true,
-      message: `Successfully vectorized and stored ${vectors.length} chunks for "${title}" (${category}, v${version}).`,
+      message: `Stored ${vectors.length} chunks for "${title}" (${category}${subType ? ' · ' + subType : ''}, v${version}).`,
       chunksStored: vectors.length,
       registryEntry: {
-        type, category, title, tags, version, effectiveDate,
+        type, category, subType, title, tags, version, effectiveDate,
         chunkCount: vectors.length,
         vectorIds,
         uploadedAt: new Date().toISOString(),

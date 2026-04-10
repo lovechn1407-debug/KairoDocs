@@ -100,6 +100,7 @@ export default function TemplateEngine() {
   // RAG Upload States
   const [ragType, setRagType] = useState("template");
   const [ragCategory, setRagCategory] = useState("MOU");
+  const [ragSubType, setRagSubType] = useState<"structure" | "clauses">("structure");
   const [ragTitle, setRagTitle] = useState("");
   const [ragText, setRagText] = useState("");
   const [ragTags, setRagTags] = useState("mou, legal");
@@ -330,6 +331,7 @@ export default function TemplateEngine() {
 
   const handleTypeChange = (newType: string) => {
     setRagType(newType);
+    setRagSubType("structure"); // reset sub-type when switching
     const firstCat = Object.keys(newType === "template" ? TEMPLATE_CATEGORIES : PRECEDENT_CATEGORIES)[0];
     setRagCategory(firstCat);
     const catData = (newType === "template" ? TEMPLATE_CATEGORIES : PRECEDENT_CATEGORIES)[firstCat];
@@ -354,6 +356,7 @@ export default function TemplateEngine() {
         body: JSON.stringify({ 
           type: ragType,
           category: ragCategory,
+          subType: ragType === "template" ? ragSubType : undefined,
           title: ragTitle, 
           text: ragText,
           tags,
@@ -544,7 +547,46 @@ export default function TemplateEngine() {
                   <p className="text-xs text-slate-400 mt-2">{activeCategoryMap[ragCategory]?.label}</p>
                 </div>
 
-                <hr className="border-slate-100" />
+                {/* ── Level 3: Sub-type (Templates only) ──────── */}
+                {ragType === "template" && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">
+                      Upload As
+                    </label>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setRagSubType("structure")}
+                        className={`flex-1 text-left p-4 rounded-xl border-2 transition ${
+                          ragSubType === "structure"
+                            ? "border-blue-500 bg-blue-50"
+                            : "border-slate-200 bg-white hover:border-slate-300"
+                        }`}
+                      >
+                        <p className={`font-bold text-sm ${ragSubType === "structure" ? "text-blue-700" : "text-slate-700"}`}>
+                          📄 Template Structure
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          The document skeleton — layout, headings, sections, and placeholder fields for the {ragCategory}.
+                        </p>
+                      </button>
+                      <button
+                        onClick={() => setRagSubType("clauses")}
+                        className={`flex-1 text-left p-4 rounded-xl border-2 transition ${
+                          ragSubType === "clauses"
+                            ? "border-indigo-500 bg-indigo-50"
+                            : "border-slate-200 bg-white hover:border-slate-300"
+                        }`}
+                      >
+                        <p className={`font-bold text-sm ${ragSubType === "clauses" ? "text-indigo-700" : "text-slate-700"}`}>
+                          ⚖️ Clauses / Policies
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          Specific legal rules, terms, and obligations that the AI must enforce in {ragCategory} documents.
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* ── Title ───────────────────────────────────── */}
                 <div>
@@ -655,6 +697,20 @@ export default function TemplateEngine() {
                             }`}>
                               {entry.type === 'template' ? 'Template' : 'Precedent'}
                             </span>
+                            {entry.category && (
+                              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                                {entry.category}
+                              </span>
+                            )}
+                            {entry.subType && (
+                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                entry.subType === 'structure' 
+                                  ? 'bg-sky-100 text-sky-700' 
+                                  : 'bg-indigo-100 text-indigo-700'
+                              }`}>
+                                {entry.subType === 'structure' ? '📄 Structure' : '⚖️ Clauses'}
+                              </span>
+                            )}
                             <h4 className="font-semibold text-slate-800 truncate">{entry.title}</h4>
                           </div>
                           <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
