@@ -61,10 +61,11 @@ export async function POST(req: Request) {
     }
 
     console.log(`[Vectorize] Upserting ${vectors.length} vectors into Pinecone...`);
-    // Upsert vectors into Pinecone
+    // Pinecone v7 SDK requires { records: [...] } — bare array causes "Must pass at least 1 record" error
     const index = getIndex();
-    await index.upsert(vectors as any);
+    await index.upsert({ records: vectors } as any);
     console.log(`[Vectorize] Upsert complete.`);
+
 
     return NextResponse.json({
       success: true,
