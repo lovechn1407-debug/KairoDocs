@@ -35,15 +35,19 @@ export default function HeadSubmissions() {
             userEmail: sub.userEmail,
             totalDocs: 0,
             approvedDocs: 0,
+            pendingDocs: 0,
+            rejectedDocs: 0,
+            needsEditDocs: 0,
             createdAt: sub.createdAt,
             documents: []
           };
         }
         projectMap[sub.projectId].documents.push(sub);
         projectMap[sub.projectId].totalDocs += 1;
-        if (sub.status === "Approved") {
-           projectMap[sub.projectId].approvedDocs += 1;
-        }
+        if (sub.status === "Approved") projectMap[sub.projectId].approvedDocs += 1;
+        else if (sub.status === "Pending") projectMap[sub.projectId].pendingDocs += 1;
+        else if (sub.status === "Rejected") projectMap[sub.projectId].rejectedDocs += 1;
+        else if (sub.status === "Needs Edit") projectMap[sub.projectId].needsEditDocs += 1;
       });
 
       const sortedProjects = Object.values(projectMap).sort((a: any, b: any) => 
@@ -151,7 +155,25 @@ export default function HeadSubmissions() {
                     </div>
                     
                     <div className="flex items-center gap-8">
-                       <div className="text-center">
+                       <div className="hidden md:flex items-center gap-2 mr-2">
+                         {proj.pendingDocs > 0 && (
+                           <div className="bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold px-2.5 py-1 rounded-md flex items-center gap-1 shadow-sm">
+                              {proj.pendingDocs} Pending
+                           </div>
+                         )}
+                         {proj.needsEditDocs > 0 && (
+                           <div className="bg-orange-100 text-orange-800 border border-orange-200 text-xs font-bold px-2.5 py-1 rounded-md flex items-center gap-1 shadow-sm">
+                              {proj.needsEditDocs} Re-edit
+                           </div>
+                         )}
+                         {proj.rejectedDocs > 0 && (
+                           <div className="bg-red-100 text-red-800 border border-red-200 text-xs font-bold px-2.5 py-1 rounded-md flex items-center gap-1 shadow-sm">
+                              {proj.rejectedDocs} Rejected
+                           </div>
+                         )}
+                       </div>
+
+                       <div className="text-center pl-4 md:border-l border-slate-200">
                          <p className="text-2xl font-bold text-slate-700">{proj.totalDocs}</p>
                          <p className="text-xs text-slate-400 font-bold uppercase tracking-wide">Total Docs</p>
                        </div>
