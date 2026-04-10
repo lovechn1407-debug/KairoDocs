@@ -74,33 +74,56 @@ export async function POST(req: Request) {
     let templatesText = "No direct active templates found in vectors.";
     let precedentsText = "No precedents found in vectors.";
 
-    // Pinecone Retrieval if we have a templateName
+    // Pinecone Retrieval — two separate filtered queries for precision
     if (templateName) {
       try {
         const queryVector = await embedText(templateName);
         const index = getIndex();
-        
-        const searchRes = await index.query({
+
+        // Source 1: Institutional Templates — filter strictly by type=template
+        const templateRes = await index.query({
           vector: queryVector,
-          topK: 6,
-          includeMetadata: true
+          topK: 4,
+          includeMetadata: true,
+          filter: { type: { $eq: "template" } }
         });
 
-        if (searchRes.matches && searchRes.matches.length > 0) {
-          const templates = searchRes.matches.filter(m => m.metadata?.type === "template");
-          const precedents = searchRes.matches.filter(m => m.metadata?.type === "precedent");
-
-          if (templates.length > 0) {
-            templatesText = templates.map((t, i) => `--- Template Segment ${i+1} ---\n${t.metadata?.text}`).join("\n\n");
-          }
-          if (precedents.length > 0) {
-            precedentsText = precedents.map((p, i) => `--- Precedent Segment ${i+1} ---\n${p.metadata?.text}`).join("\n\n");
-          }
+        if (templateRes.matches && templateRes.matches.length > 0) {
+          // Sort by recency (highest effectiveDateMs first) to prefer newest policies
+          const sorted = [...templateRes.matches].sort(
+            (a, b) => ((b.metadata?.effectiveDateMs as number) || 0) - ((a.metadata?.effectiveDateMs as number) || 0)
+          );
+          templatesText = sorted.map((t, i) => {
+            const meta = t.metadata;
+            const header = `--- Template: "${meta?.title}" | v${meta?.version || '?'} | Effective: ${meta?.effectiveDate || 'Unknown'} ---`;
+            return `${header}\n${meta?.text}`;
+          }).join("\n\n");
         }
+
+        // Source 3: Historical Precedents — filter strictly by type=precedent
+        const precedentRes = await index.query({
+          vector: queryVector,
+          topK: 3,
+          includeMetadata: true,
+          filter: { type: { $eq: "precedent" } }
+        });
+
+        if (precedentRes.matches && precedentRes.matches.length > 0) {
+          const sorted = [...precedentRes.matches].sort(
+            (a, b) => ((b.metadata?.effectiveDateMs as number) || 0) - ((a.metadata?.effectiveDateMs as number) || 0)
+          );
+          precedentsText = sorted.map((p, i) => {
+            const meta = p.metadata;
+            const header = `--- Precedent: "${meta?.title}" | Tags: ${meta?.tags || 'none'} ---`;
+            return `${header}\n${meta?.text}`;
+          }).join("\n\n");
+        }
+
       } catch (e) {
         console.warn("Pinecone Vector Query Failed (continuing without RAG context):", e);
       }
     }
+
 
     // Assemble structured prompt
     const prompt = `Context Blocks (The RAG Input):

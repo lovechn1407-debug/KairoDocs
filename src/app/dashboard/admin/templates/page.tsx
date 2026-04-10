@@ -101,6 +101,9 @@ export default function TemplateEngine() {
   const [ragType, setRagType] = useState("template");
   const [ragTitle, setRagTitle] = useState("");
   const [ragText, setRagText] = useState("");
+  const [ragTags, setRagTags] = useState("");
+  const [ragVersion, setRagVersion] = useState("1.0");
+  const [ragDate, setRagDate] = useState(new Date().toISOString().split('T')[0]);
   const [isVectorizing, setIsVectorizing] = useState(false);
   const [vectorStatus, setVectorStatus] = useState("");
 
@@ -232,16 +235,26 @@ export default function TemplateEngine() {
     setIsVectorizing(true);
     setVectorStatus("Processing...");
     try {
+      const tags = ragTags.split(',').map(t => t.trim()).filter(Boolean);
       const res = await fetch("/api/admin/vectorize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: ragType, title: ragTitle, text: ragText })
+        body: JSON.stringify({ 
+          type: ragType, 
+          title: ragTitle, 
+          text: ragText,
+          tags,
+          version: ragVersion,
+          effectiveDate: ragDate
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setVectorStatus(`✅ ${data.message}`);
       setRagTitle("");
       setRagText("");
+      setRagTags("");
+      setRagVersion("1.0");
       setTimeout(() => setVectorStatus(""), 5000);
     } catch (e: any) {
       alert("Vectorization failed: " + e.message);
@@ -373,11 +386,41 @@ export default function TemplateEngine() {
                   />
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Version Number</label>
+                    <input 
+                      type="text" value={ragVersion} onChange={e => setRagVersion(e.target.value)}
+                      placeholder="e.g. 2.1"
+                      className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Effective Date</label>
+                    <input 
+                      type="date" value={ragDate} onChange={e => setRagDate(e.target.value)}
+                      className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Tags / Keywords
+                    <span className="ml-2 text-xs font-normal text-slate-400">(comma separated — used for precise Pinecone filtering)</span>
+                  </label>
+                  <input 
+                    type="text" value={ragTags} onChange={e => setRagTags(e.target.value)}
+                    placeholder="e.g. legal, nda, confidentiality, ip-rights"
+                    className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">These tags let the AI filter relevant context precisely during document generation.</p>
+                </div>
+
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">Full Text Content</label>
                   <textarea 
                     value={ragText} onChange={e => setRagText(e.target.value)}
-                    rows={12}
+                    rows={10}
                     placeholder="Paste the raw text of the policies here..."
                     className="w-full border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
