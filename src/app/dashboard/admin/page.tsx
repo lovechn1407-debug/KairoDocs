@@ -1,0 +1,74 @@
+"use client";
+
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { motion } from "framer-motion";
+import { Settings, FileText, LayoutDashboard, Component } from "lucide-react";
+import Link from "next/link";
+
+export default function AdminDashboard() {
+  return (
+    <ProtectedRoute allowedRoles={["admin"]}>
+      <div className="p-8 max-w-7xl mx-auto space-y-8">
+        <header>
+          <h1 className="text-3xl font-bold text-slate-900">Admin Control Panel</h1>
+          <p className="text-slate-500 mt-1">Global settings, Template Engine, and announcements.</p>
+        </header>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center text-center hover:shadow-md transition-shadow cursor-pointer"
+          >
+            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-4">
+              <Component className="h-8 w-8" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-900">Departments</h3>
+            <p className="text-sm text-slate-500 mt-1">Manage Heads & Groups</p>
+          </motion.div>
+
+          <Link href="/dashboard/admin/templates" passHref>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center text-center hover:shadow-md transition-shadow cursor-pointer h-full block"
+            >
+              <div className="w-16 h-16 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center mb-4">
+                <FileText className="h-8 w-8" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900">Template Engine</h3>
+              <p className="text-sm text-slate-500 mt-1">Drag & Drop Editor</p>
+            </motion.div>
+          </Link>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center text-center hover:shadow-md transition-shadow cursor-pointer"
+          >
+            <div className="w-16 h-16 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mb-4">
+              <LayoutDashboard className="h-8 w-8" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-900">Announcements</h3>
+            <p className="text-sm text-slate-500 mt-1">Global Ticker Settings</p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center text-center hover:shadow-md transition-shadow cursor-pointer"
+          >
+            <div className="w-16 h-16 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center mb-4">
+              <Settings className="h-8 w-8" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-900">Global Settings</h3>
+            <p className="text-sm text-slate-500 mt-1">System preferences</p>
+          </motion.div>
+        </div>
+      </div>
+    </ProtectedRoute>
+  );
+}

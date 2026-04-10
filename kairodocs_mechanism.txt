@@ -1,0 +1,81 @@
+KairoDocs Project - Full Mechanism Overview
+===========================================
+
+Overview
+--------
+KairoDocs is an AI-powered incubation document management platform built with Next.js 15 (App Router). It streamlines the process of extracting critical information from uploaded legal/incubation PDF documents and automatically populating predefined templates. It uses Firebase for Authentication and Realtime Database, and leverages LLM providers (Groq/Gemini) for data extraction.
+
+Technology Stack
+----------------
+- Frontend: Next.js (React 19), Tailwind CSS v4, Framer Motion (Animations), Jodit (Rich Text Editor).
+- Backend APIs: Next.js Route Handlers (/api).
+- Database & Auth: Firebase (Authentication, Realtime Database).
+- AI Engines: Groq (Llama models), Gemini (1.5/2.0 Flash models).
+- PDF Parser: "unpdf" library to extract text natively using Uint8Array.
+
+Role-Based Architecture (3-Tier)
+--------------------------------
+The project relies heavily on Role-Based Access Control managed by a custom `ProtectedRoute` component. Use roles are stored alongside user records in Firebase Realtime Database.
+
+1. Admin (/dashboard/admin):
+   - Global Settings: Configure system preferences.
+   - Departments: Add departments, generate invite links for "Heads" and manage users' role elevations/demotions.
+   - Template Engine: A Jodit-powered Rich Text Editor to construct boilerplate documents. Admins can drag-and-drop or type variable placeholders (e.g., {{COMPANY_NAME}}, {{TABLE:SERVICES}}) to define data schemas.
+   - Announcements: Configure a global ticker tape (marquee) component seen by users across the application.
+
+2. Department Head (/dashboard/head):
+   - Scope: Manages their specific department.
+   - Invites: Generate invite links for regular users, appending their department info automatically.
+   - Submissions Queue: Review documents submitted by users in their department. Heads can view the generated document completely statically, and take action: Approve or Reject.
+
+3. User (/dashboard/user):
+   - Projects: Users organize their documents into distinct projects.
+   - AI Document Generation: The core feature. Users choose a format template created by admins and upload a source document (e.g., third-party MoU). The system automatically parses the PDF, extracts requested variables using AI, fills the template, and presents it in a Jodit editor for final review and submission.
+
+Core Flow: AI Document Parsing & Extraction
+-------------------------------------------
+The most complex mechanism lives inside `/dashboard/user/projects/[projectId]/documents/new` and the corresponding `/api` routes.
+
+Step 1: Parsing
+  - The User uploads a PDF file.
+  - The file is sent via FormData to `POST /api/parse-pdf`.
+  - The route uses `unpdf` to extract raw text text from the PDF Buffer securely.
+
+Step 2: Template Variable Analysis
+  - The frontend inspects the chosen template's HTML content.
+  - It runs a Regex (`/{{(.*?)}}/g`) to find all defined variables (e.g., {{USER_NAME}}, {{TABLE:ITEMS}}).
+  - It sends these required variables alongside the parsed PDF text to `POST /api/extract`.
+
+Step 3: AI Extraction
+  - Inside `/api/extract`:
+    - The variables are split into scalar values and dynamic tables (starting with "TABLE:").
+    - Scalar Extraction Prompt: The AI is instructed to return a raw JSON object filling in the requested scalar keys from the document context.
+    - Table Extraction Prompt: For each "TABLE:" request, a separate prompt asks the AI to find tabular data and return a JSON array of objects.
+    - AI Provider Fallback: The system tries calling Groq models first. If they fail or rate-limit, it cascades to Gemini models recursively to ensure high availability.
+    - The JSON arrays for tables are automatically converted into styled HTML `<table>` strings via a helper function `jsonToHtmlTable`.
+
+Step 4: Template Hydration
+  - The frontend receives the extracted key-value pairs.
+  - It replaces `{{VAR}}` in the template with the AI's extracted value.
+  - Scalars are wrapped in a blue highlight `<span style="...">` for easy visual verification by the user.
+  - Tables are injected directly as raw HTML.
+
+Step 5: Review & Submit
+  - The fully hydrated template is rendered inside the Jodit Rich Text Editor.
+  - The user can make manual corrections if the AI missed or misinterpreted something.
+  - Upon clicking "Submit", the document HTML is saved to Firebase Realtime Database in the `submissions` collection, tagged as "Pending".
+
+Database Schema (Firebase Realtime Database)
+--------------------------------------------
+- `users/$uid`: Stores user metadata, roles (admin/head/user), department mapping, etc.
+- `departments/$id`: List of created departments.
+- `invites/$token`: Token-based secure invites containing role inheritance (e.g. inviting a head, or inviting a user to a specific dept).
+- `templates/$id`: Holds the HTML content of the document boilerplates created by the admin.
+- `projects/$id`: Folders/containers created by users.
+- `submissions/$id`: The final rendered documents tied to a user and project, holding "Pending", "Approved", or "Rejected" states.
+- `announcements/global`: Singular object controlling the UI ticker tape (color, speed, bold, active state).
+
+Communication Interfaces
+------------------------
+- Firebase Auth: Email & Password authentication.
+- Telegram API (Included in `lib/telegram.ts`): Functions built to optionally push generated documents or files safely into a secure telegram group using a Bot token. (Currently available as utility).

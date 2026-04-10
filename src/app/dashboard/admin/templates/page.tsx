@@ -1,0 +1,446 @@
+"use client";
+
+import ProtectedRoute from "@/components/ProtectedRoute";
+import React, { useRef, useState, useMemo, useEffect } from "react";
+import dynamic from "next/dynamic";
+import { Save, ArrowLeft, GripVertical, Plus, Table2, Type, Image as ImageIcon, Hash, Trash2, ChevronDown, ChevronRight, FileText, Eye } from "lucide-react";
+import Link from "next/link";
+import { database } from "@/lib/firebase";
+import { ref, push, set, get, remove } from "firebase/database";
+
+const JoditEditor = dynamic(() => import("jodit-react"), { ssr: false });
+
+// ─── Variable Categories ───────────────────────────────────────────────────
+const VARIABLE_GROUPS = [
+  {
+    id: "identity",
+    label: "👤 Party Information",
+    color: "blue",
+    vars: [
+      { name: "User Full Name",       tag: "{{USER_NAME}}" },
+      { name: "User Phone",           tag: "{{USER_PHONE}}" },
+      { name: "User Email",           tag: "{{USER_EMAIL}}" },
+      { name: "Company Name",         tag: "{{COMPANY_NAME}}" },
+      { name: "Company Address",      tag: "{{COMPANY_ADDRESS}}" },
+      { name: "Party A Name",         tag: "{{PARTY_A}}" },
+      { name: "Party B Name",         tag: "{{PARTY_B}}" },
+    ],
+  },
+  {
+    id: "document",
+    label: "📄 Document Details",
+    color: "indigo",
+    vars: [
+      { name: "Current Date",         tag: "{{DATE}}" },
+      { name: "Effective Date",       tag: "{{EFFECTIVE_DATE}}" },
+      { name: "Expiry Date",          tag: "{{EXPIRY_DATE}}" },
+      { name: "Project Title",        tag: "{{PROJECT_TITLE}}" },
+      { name: "Reference Number",     tag: "{{REF_NUMBER}}" },
+      { name: "Agreement Type",       tag: "{{AGREEMENT_TYPE}}" },
+      { name: "Document Purpose",     tag: "{{PURPOSE}}" },
+    ],
+  },
+  {
+    id: "financial",
+    label: "💰 Financial",
+    color: "green",
+    vars: [
+      { name: "Total Amount",         tag: "{{TOTAL_AMOUNT}}" },
+      { name: "Amount in Words",      tag: "{{AMOUNT_IN_WORDS}}" },
+      { name: "GST Number",           tag: "{{GST_NUMBER}}" },
+      { name: "PAN Number",           tag: "{{PAN_NUMBER}}" },
+      { name: "Invoice Number",       tag: "{{INVOICE_NUMBER}}" },
+      { name: "Due Date",             tag: "{{DUE_DATE}}" },
+      { name: "Payment Terms",        tag: "{{PAYMENT_TERMS}}" },
+    ],
+  },
+  {
+    id: "ai",
+    label: "🤖 AI Generated",
+    color: "purple",
+    vars: [
+      { name: "AI Summary",           tag: "{{AI_SUMMARY}}" },
+      { name: "AI Key Points",        tag: "{{AI_KEY_POINTS}}" },
+      { name: "Scope of Work",        tag: "{{SCOPE_OF_WORK}}" },
+    ],
+  },
+  {
+    id: "tables",
+    label: "📊 Dynamic Tables",
+    color: "amber",
+    vars: [
+      { name: "Products / Items Table",   tag: "{{TABLE:ITEMS}}" },
+      { name: "Services Table",           tag: "{{TABLE:SERVICES}}" },
+      { name: "Milestones Table",         tag: "{{TABLE:MILESTONES}}" },
+      { name: "Contacts Table",           tag: "{{TABLE:CONTACTS}}" },
+    ],
+  },
+];
+
+// Color maps for Tailwind (must be hardcoded to avoid purging)
+const colorMap: Record<string, { bg: string; border: string; text: string; pill: string }> = {
+  blue:   { bg: "bg-blue-50",   border: "border-blue-200",   text: "text-blue-700",   pill: "bg-blue-100 text-blue-700" },
+  indigo: { bg: "bg-indigo-50", border: "border-indigo-200", text: "text-indigo-700", pill: "bg-indigo-100 text-indigo-700" },
+  green:  { bg: "bg-green-50",  border: "border-green-200",  text: "text-green-700",  pill: "bg-green-100 text-green-700" },
+  purple: { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700", pill: "bg-purple-100 text-purple-700" },
+  amber:  { bg: "bg-amber-50",  border: "border-amber-200",  text: "text-amber-700",  pill: "bg-amber-100 text-amber-700" },
+};
+
+export default function TemplateEngine() {
+  const editorRef = useRef<any>(null);
+  const [content, setContent] = useState("");
+  const [templateName, setTemplateName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [savedTemplates, setSavedTemplates] = useState<any[]>([]);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ identity: true, tables: true });
+  const [activeTab, setActiveTab] = useState<"editor" | "templates">("editor");
+  const [customVarName, setCustomVarName] = useState("");
+  const [customTableName, setCustomTableName] = useState("");
+  const [previewMode, setPreviewMode] = useState(false);
+
+  useEffect(() => {
+    get(ref(database, "templates")).then(snap => {
+      if (snap.exists()) setSavedTemplates(Object.values(snap.val()));
+    });
+  }, []);
+
+  // ─── Jodit Config ───────────────────────────────────────────────────────
+  const config = useMemo(() => ({
+    readonly: false,
+    placeholder: "Start designing your legal document template here...",
+    height: "100%",
+    minHeight: 600,
+    toolbarSticky: true,
+    toolbarAdaptive: false,
+    showXPathInStatusbar: false,
+    showCharsCounter: true,
+    showWordsCounter: true,
+    allowResizeY: false,
+    toolbarButtonSize: "middle" as const,
+    style: {
+      font: "16px Georgia, serif",
+      lineHeight: "1.8",
+    },
+    buttons: [
+      "source", "|",
+      "bold", "italic", "underline", "strikethrough", "|",
+      "superscript", "subscript", "|",
+      "font", "fontsize", "|",
+      "brush", "paragraph", "|",
+      "ul", "ol", "|",
+      "indent", "outdent", "|",
+      "align", "|",
+      "table", "image", "link", "hr", "|",
+      "undo", "redo", "|",
+      "copyformat", "eraser", "|",
+      "fullsize", "print",
+    ],
+    uploader: {
+      insertImageAsBase64URI: true,
+    },
+    image: {
+      openOnDblClick: true,
+      editSrc: true,
+      useImageEditor: true,
+    },
+    table: {
+      allowCellResize: true,
+    },
+    fontValues: {
+      "Arial,Helvetica,sans-serif": "Arial",
+      "Georgia,serif": "Georgia (Formal)",
+      "Times New Roman,Times,serif": "Times New Roman",
+      "Courier New,Courier,monospace": "Courier New",
+      "Verdana,Geneva,sans-serif": "Verdana",
+      "Trebuchet MS,sans-serif": "Trebuchet MS",
+    },
+  }), []);
+
+  // ─── Insert Tag at Cursor ────────────────────────────────────────────────
+  const insertTag = (tag: string) => {
+    if (editorRef.current?.editor) {
+      editorRef.current.editor.selection.insertHTML(
+        `<span style="background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:13px;font-weight:600">${tag}</span>&nbsp;`
+      );
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent, tag: string) => {
+    e.dataTransfer.setData("text/plain", tag);
+  };
+
+  // ─── Save Template ───────────────────────────────────────────────────────
+  const handleSave = async () => {
+    if (!templateName.trim()) return alert("Please enter a template name");
+    if (!content.trim()) return alert("Template content is empty");
+    setSaving(true);
+    try {
+      const newRef = push(ref(database, "templates"));
+      await set(newRef, {
+        id: newRef.key,
+        name: templateName,
+        content,
+        createdAt: new Date().toISOString(),
+      });
+      alert(`✅ Template "${templateName}" saved!`);
+      setTemplateName("");
+      setContent("");
+      const snap = await get(ref(database, "templates"));
+      if (snap.exists()) setSavedTemplates(Object.values(snap.val()));
+    } catch (e: any) {
+      alert("Failed to save: " + e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (id: string) => {
+    if (!confirm("Delete this template?")) return;
+    await remove(ref(database, `templates/${id}`));
+    const snap = await get(ref(database, "templates"));
+    setSavedTemplates(snap.exists() ? Object.values(snap.val()) : []);
+  };
+
+  const handleLoadTemplate = (t: any) => {
+    setTemplateName(t.name + " (Copy)");
+    setContent(t.content);
+    setActiveTab("editor");
+  };
+
+  const addCustomVar = () => {
+    if (!customVarName.trim()) return;
+    const tag = `{{${customVarName.toUpperCase().replace(/\s+/g, "_")}}}`;
+    insertTag(tag);
+    setCustomVarName("");
+  };
+
+  const addCustomTable = () => {
+    if (!customTableName.trim()) return;
+    const tag = `{{TABLE:${customTableName.toUpperCase().replace(/\s+/g, "_")}}}`;
+    insertTag(tag);
+    setCustomTableName("");
+  };
+
+  return (
+    <ProtectedRoute allowedRoles={["admin"]}>
+      <div className="flex h-screen flex-col bg-slate-100 overflow-hidden">
+
+        {/* ─── Topbar ───────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3 shrink-0 shadow-sm z-10">
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard/admin" className="text-slate-400 hover:text-slate-600 transition">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+              <button
+                onClick={() => setActiveTab("editor")}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${activeTab === "editor" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+              >
+                <span className="flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Editor</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("templates")}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${activeTab === "templates" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+              >
+                <span className="flex items-center gap-1.5"><Eye className="h-3.5 w-3.5" /> Saved Templates ({savedTemplates.length})</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              type="text"
+              placeholder="Template name (e.g. MoU Agreement)..."
+              value={templateName}
+              onChange={e => setTemplateName(e.target.value)}
+              className="w-80 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition shadow-sm"
+            >
+              <Save className="h-4 w-4" />
+              {saving ? "Saving..." : "Save Template"}
+            </button>
+          </div>
+        </div>
+
+        {/* ─── Saved Templates Tab ─────────────────────────────────── */}
+        {activeTab === "templates" && (
+          <div className="flex-1 overflow-auto p-8">
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-2xl font-bold text-slate-800 mb-6">Saved Templates</h2>
+              {savedTemplates.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-slate-200 p-16 text-center">
+                  <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-500">No templates saved yet. Build one in the Editor tab!</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {savedTemplates.map(t => (
+                    <div key={t.id} className="bg-white rounded-xl border border-slate-200 p-5 flex items-center justify-between hover:shadow-sm transition">
+                      <div>
+                        <h3 className="font-bold text-slate-900">{t.name}</h3>
+                        <p className="text-xs text-slate-400 mt-0.5">Created {new Date(t.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleLoadTemplate(t)}
+                          className="text-sm text-blue-600 font-medium hover:underline px-3 py-1 rounded-lg bg-blue-50 hover:bg-blue-100"
+                        >
+                          Edit / Duplicate
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTemplate(t.id)}
+                          className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ─── Editor Tab ──────────────────────────────────────────── */}
+        {activeTab === "editor" && (
+          <div className="flex flex-1 overflow-hidden">
+
+            {/* Editor Area */}
+            <div className="flex-1 overflow-y-auto p-6 bg-slate-100">
+              <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white shadow-md overflow-hidden">
+                <JoditEditor
+                  ref={editorRef}
+                  value={content}
+                  config={config}
+                  onBlur={val => setContent(val)}
+                  onChange={() => {}}
+                />
+              </div>
+            </div>
+
+            {/* ─── Variables Sidebar ──────────────────────────────── */}
+            <aside className="w-80 flex-shrink-0 border-l border-slate-200 bg-white flex flex-col overflow-hidden">
+              <div className="px-5 pt-5 pb-3 border-b border-slate-100">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Variables & Tables</h2>
+                <p className="mt-1 text-xs text-slate-400 leading-relaxed">
+                  <strong>Drag</strong> or <strong>click</strong> to insert at cursor. AI extracts real values from uploaded documents.
+                </p>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+
+                {/* Variable Groups */}
+                {VARIABLE_GROUPS.map(group => {
+                  const c = colorMap[group.color] || colorMap.blue;
+                  const isOpen = openGroups[group.id];
+                  return (
+                    <div key={group.id} className="rounded-xl border border-slate-100 overflow-hidden">
+                      <button
+                        onClick={() => setOpenGroups(p => ({ ...p, [group.id]: !p[group.id] }))}
+                        className="w-full flex items-center justify-between px-3 py-2.5 bg-slate-50 hover:bg-slate-100 transition"
+                      >
+                        <span className="text-sm font-semibold text-slate-700">{group.label}</span>
+                        {isOpen ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+                      </button>
+
+                      {isOpen && (
+                        <div className="p-2 space-y-1.5 bg-white">
+                          {group.vars.map(v => (
+                            <div
+                              key={v.tag}
+                              draggable
+                              onDragStart={e => handleDragStart(e, v.tag)}
+                              onClick={() => insertTag(v.tag)}
+                              className={`flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer group transition-all hover:shadow-sm ${c.bg} ${c.border} hover:scale-[1.01]`}
+                            >
+                              <GripVertical className={`h-3.5 w-3.5 ${c.text} flex-shrink-0 opacity-60`} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold text-slate-700 truncate">{v.name}</p>
+                                <code className={`mt-0.5 block text-[10px] font-mono ${c.pill} px-1.5 py-0.5 rounded w-fit truncate max-w-full`}>
+                                  {v.tag}
+                                </code>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Custom Variable */}
+                <div className="rounded-xl border border-slate-200 overflow-hidden">
+                  <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-50">
+                    <Type className="h-4 w-4 text-slate-500" />
+                    <span className="text-sm font-semibold text-slate-700">Custom Variable</span>
+                  </div>
+                  <div className="p-3 bg-white flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Variable name..."
+                      value={customVarName}
+                      onChange={e => setCustomVarName(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && addCustomVar()}
+                      className="flex-1 text-xs border border-slate-300 rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400"
+                    />
+                    <button
+                      onClick={addCustomVar}
+                      className="bg-blue-600 text-white px-2.5 py-1.5 rounded-lg hover:bg-blue-700 transition"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Custom Table */}
+                <div className="rounded-xl border border-amber-200 overflow-hidden">
+                  <div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50">
+                    <Table2 className="h-4 w-4 text-amber-600" />
+                    <span className="text-sm font-semibold text-amber-800">Custom Dynamic Table</span>
+                  </div>
+                  <div className="p-3 bg-white space-y-2">
+                    <p className="text-[10px] text-slate-400 leading-relaxed">
+                      AI will auto-detect all rows & columns from the uploaded document — even if rows vary per document!
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Table name (e.g. Orders)..."
+                        value={customTableName}
+                        onChange={e => setCustomTableName(e.target.value)}
+                        onKeyDown={e => e.key === "Enter" && addCustomTable()}
+                        className="flex-1 text-xs border border-slate-300 rounded-lg px-2 py-1.5 focus:outline-none focus:border-amber-400"
+                      />
+                      <button
+                        onClick={addCustomTable}
+                        className="bg-amber-500 text-white px-2.5 py-1.5 rounded-lg hover:bg-amber-600 transition"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Image hint */}
+                <div className="rounded-xl border border-slate-200 p-3 bg-slate-50 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4 text-slate-500" />
+                    <span className="text-xs font-semibold text-slate-600">Images</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 leading-relaxed">
+                    Use the <strong>Image</strong> button in the toolbar above to insert a logo or signature. You can upload from your PC or paste a URL.
+                  </p>
+                </div>
+              </div>
+            </aside>
+          </div>
+        )}
+      </div>
+    </ProtectedRoute>
+  );
+}
