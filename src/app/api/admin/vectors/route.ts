@@ -6,30 +6,36 @@ export const dynamic = 'force-dynamic';
 
 const DB_URL = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL;
 
-async function firebaseGet(path: string) {
-  const res = await fetch(`${DB_URL}/${path}.json`);
-  if (!res.ok) throw new Error(`Firebase GET failed: ${res.status}`);
-  return res.json();
-}
-
-async function firebaseDelete(path: string) {
-  const res = await fetch(`${DB_URL}/${path}.json`, { method: 'DELETE' });
-  if (!res.ok) throw new Error(`Firebase DELETE failed: ${res.status}`);
-}
-
 // GET — return all registry entries + Pinecone total vector count
 export async function GET() {
   try {
-    const data = await firebaseGet('ragKnowledge');
-    const entries = data ? Object.values(data) : [];
+    // Firebase REST API: append auth=... only needed if rules require auth
+    // We use .json suffix which works for public-readable nodes
+    let entries: any[] = [];
+    try {
+      const res = await fetch(`${DB_URL}/ragKnowledge.json`);
+      const text = await res.text();
+      // Firebase returns literal "null" string when node doesn't exist
+      if (text && text !== 'null') {
+        const data = JSON.parse(text);
+        if (data && typeof data === 'object') {
+          entries = Object.values(data);
+        }
+      }
+    } catch (fbErr: any) {
+      console.warn('[Vectors] Firebase read failed (returning empty list):', fbErr.message);
+    }
+
+    // Sort newest first
+    entries.sort((a: any, b: any) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
 
     let totalVectors = 0;
     try {
       const index = getIndex();
       const stats = await index.describeIndexStats();
-      totalVectors = (stats as any).totalRecordCount ?? (stats as any).totalVectorCount ?? 0;
-    } catch (e) {
-      console.warn('[Vectors] Pinecone stats fetch failed:', e);
+      totalVectors = (stats as any).totalRecordCount ?? 0;
+    } catch (e: any) {
+      console.warn('[Vectors] Pinecone stats fetch failed:', e.message);
     }
 
     return NextResponse.json({ success: true, entries, totalVectors });
@@ -39,7 +45,7 @@ export async function GET() {
   }
 }
 
-// DELETE — remove registry entry from Firebase and vectors from Pinecone
+// DELETE — remove a single registry entry from Firebase and its vectors from Pinecone
 export async function DELETE(req: Request) {
   try {
     const { registryId, vectorIds } = await req.json();
@@ -47,8 +53,10 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Missing registryId' }, { status: 400 });
     }
 
-    await firebaseDelete(`ragKnowledge/${registryId}`);
+    // Remove from Firebase registry
+    await fetch(`${DB_URL}/ragKnowledge/${registryId}.json`, { method: 'DELETE' });
 
+    // Remove vectors from Pinecone
     if (vectorIds && vectorIds.length > 0) {
       try {
         const index = getIndex();
