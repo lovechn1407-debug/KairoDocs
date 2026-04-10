@@ -66,53 +66,74 @@ async function callAI(prompt: string): Promise<string> {
 
 export async function POST(req: Request) {
   try {
-    const { text, templateName } = await req.json();
+    const { text, templateName, category: categoryHint } = await req.json();
 
     if (!text) return NextResponse.json({ error: "No user document text provided" }, { status: 400 });
 
-    const docText = text.substring(0, 25000); // Prevent context blowout
+    const docText = text.substring(0, 25000);
     let templatesText = "No direct active templates found in vectors.";
     let precedentsText = "No precedents found in vectors.";
 
-    // Pinecone Retrieval — two separate filtered queries for precision
+    // Detect document category from templateName for precise Pinecone filtering
+    const tnLower = (templateName || '').toLowerCase();
+    const detectedCategory = categoryHint
+      || (tnLower.includes('mou') ? 'MOU'
+        : tnLower.includes('invoice') ? 'Invoice'
+        : tnLower.includes('purchase') || tnLower.includes('po') ? 'Purchase Order'
+        : tnLower.includes('nda') ? 'NDA'
+        : tnLower.includes('service') || tnLower.includes('sla') ? 'Service Agreement'
+        : tnLower.includes('equity') || tnLower.includes('share') ? 'Equity / Shareholding'
+        : null);
+
+    console.log(`[Extract] Template: "${templateName}" | Detected category: ${detectedCategory || 'any'}`);
+
     if (templateName) {
       try {
         const queryVector = await embedText(templateName);
         const index = getIndex();
 
-        // Source 1: Institutional Templates — filter strictly by type=template
+        // Build category filter — only add if we detected a known category
+        const categoryFilter = detectedCategory
+          ? { type: { $eq: "template" }, category: { $eq: detectedCategory } }
+          : { type: { $eq: "template" } };
+
+        // Source 1: Template structures & clauses — filtered by category
         const templateRes = await index.query({
           vector: queryVector,
-          topK: 4,
+          topK: 5,
           includeMetadata: true,
-          filter: { type: { $eq: "template" } }
+          filter: categoryFilter,
         });
 
         if (templateRes.matches && templateRes.matches.length > 0) {
-          // Sort by recency (highest effectiveDateMs first) to prefer newest policies
           const sorted = [...templateRes.matches].sort(
             (a, b) => ((b.metadata?.effectiveDateMs as number) || 0) - ((a.metadata?.effectiveDateMs as number) || 0)
           );
-          templatesText = sorted.map((t, i) => {
+          templatesText = sorted.map(t => {
             const meta = t.metadata;
-            const header = `--- Template: "${meta?.title}" | v${meta?.version || '?'} | Effective: ${meta?.effectiveDate || 'Unknown'} ---`;
+            const subLabel = meta?.subType ? ` [${meta.subType}]` : '';
+            const header = `--- ${meta?.category || 'Template'}${subLabel}: "${meta?.title}" | v${meta?.version || '?'} | Effective: ${meta?.effectiveDate || 'Unknown'} ---`;
             return `${header}\n${meta?.text}`;
           }).join("\n\n");
         }
 
-        // Source 3: Historical Precedents — filter strictly by type=precedent
+        // Source 3: Historical Precedents — filter by category too
+        const precedentFilter = detectedCategory
+          ? { type: { $eq: "precedent" }, category: { $in: [detectedCategory, `Approved ${detectedCategory}`, 'General Precedent'] } }
+          : { type: { $eq: "precedent" } };
+
         const precedentRes = await index.query({
           vector: queryVector,
           topK: 3,
           includeMetadata: true,
-          filter: { type: { $eq: "precedent" } }
+          filter: { type: { $eq: "precedent" } }, // broader precedent query
         });
 
         if (precedentRes.matches && precedentRes.matches.length > 0) {
           const sorted = [...precedentRes.matches].sort(
             (a, b) => ((b.metadata?.effectiveDateMs as number) || 0) - ((a.metadata?.effectiveDateMs as number) || 0)
           );
-          precedentsText = sorted.map((p, i) => {
+          precedentsText = sorted.map(p => {
             const meta = p.metadata;
             const header = `--- Precedent: "${meta?.title}" | Tags: ${meta?.tags || 'none'} ---`;
             return `${header}\n${meta?.text}`;

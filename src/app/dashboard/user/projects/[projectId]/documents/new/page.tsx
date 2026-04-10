@@ -28,7 +28,9 @@ export default function NewDocument() {
   const [stage, setStage] = useState<"setup" | "parsing" | "analyzing" | "review" | "error">("setup");
   const [errorMsg, setErrorMsg] = useState("");
   const [finalContent, setFinalContent] = useState("");
+  const [docTitle, setDocTitle] = useState("");
   const [saving, setSaving] = useState(false);
+  const [isDownloadingDocx, setIsDownloadingDocx] = useState(false);
 
   const editorConfig = useMemo(() => ({
     readonly: false,
@@ -91,7 +93,7 @@ export default function NewDocument() {
           ${extractData.draftHtml}`;
 
       setFinalContent(populated);
-
+      setDocTitle(extractData.title || selectedTemplate.name);
       setStage("review");
     } catch (e: any) {
       setErrorMsg(e.message);
@@ -113,6 +115,7 @@ export default function NewDocument() {
         documentName: documentName.trim(),
         templateId: selectedTemplate.id,
         templateName: selectedTemplate.name,
+        content: finalContent,
         documentContent: finalContent,
         status: "Pending",
         createdAt: new Date().toISOString(),
@@ -123,6 +126,37 @@ export default function NewDocument() {
       alert("Failed to submit: " + e.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDownloadDocx = async () => {
+    if (!finalContent.trim()) return alert("No content to download.");
+    setIsDownloadingDocx(true);
+    try {
+      const res = await fetch('/api/generate-docx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          htmlContent: finalContent,
+          documentName: documentName.trim() || docTitle,
+          templateName: selectedTemplate?.name || '',
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(err.error);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${(documentName.trim() || docTitle || 'document').replace(/\s+/g, '_')}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      alert('DOCX download failed: ' + e.message);
+    } finally {
+      setIsDownloadingDocx(false);
     }
   };
 
@@ -141,14 +175,23 @@ export default function NewDocument() {
             </div>
           </div>
           {stage === "review" && (
-            <button
-              onClick={handleSubmit}
-              disabled={saving}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50"
-            >
-              <Save className="h-4 w-4" />
-              {saving ? "Submitting..." : "Submit for Approval"}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleDownloadDocx}
+                disabled={isDownloadingDocx}
+                className="flex items-center gap-2 bg-slate-700 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50"
+              >
+                {isDownloadingDocx ? '⏳ Generating...' : '⬇️ Download DOCX'}
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={saving}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50"
+              >
+                <Save className="h-4 w-4" />
+                {saving ? "Submitting..." : "Submit for Approval"}
+              </button>
+            </div>
           )}
         </div>
 
