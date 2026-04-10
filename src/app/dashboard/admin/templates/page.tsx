@@ -111,6 +111,7 @@ export default function TemplateEngine() {
   const [totalVectors, setTotalVectors] = useState(0);
   const [loadingKnowledge, setLoadingKnowledge] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     get(ref(database, "templates")).then(snap => {
@@ -154,6 +155,26 @@ export default function TemplateEngine() {
       alert('Delete failed.');
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleResetKnowledge = async () => {
+    if (!confirm('⚠️ This will permanently delete ALL vectors from Pinecone and clear the entire registry. This cannot be undone. Continue?')) return;
+    setIsResetting(true);
+    try {
+      const res = await fetch('/api/admin/reset-knowledge', { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        setRagKnowledge([]);
+        setTotalVectors(0);
+        alert('✅ Pinecone index and registry fully cleared.');
+      } else {
+        alert('Reset failed: ' + data.error);
+      }
+    } catch (e) {
+      alert('Reset failed.');
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -491,13 +512,22 @@ export default function TemplateEngine() {
                     <h3 className="font-bold text-slate-800">Stored Knowledge</h3>
                     {totalVectors > 0 && <span className="text-xs bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full">{totalVectors} vectors</span>}
                   </div>
-                  <button
-                    onClick={fetchKnowledge}
-                    disabled={loadingKnowledge}
-                    className="text-sm font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
-                  >
-                    {loadingKnowledge ? 'Loading...' : '↻ Refresh'}
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleResetKnowledge}
+                      disabled={isResetting || ragKnowledge.length === 0}
+                      className="text-xs font-bold text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-200 px-3 py-1.5 rounded-lg disabled:opacity-40 transition"
+                    >
+                      {isResetting ? 'Wiping...' : '🗑️ Wipe All'}
+                    </button>
+                    <button
+                      onClick={fetchKnowledge}
+                      disabled={loadingKnowledge}
+                      className="text-sm font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
+                    >
+                      {loadingKnowledge ? 'Loading...' : '↻ Refresh'}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="divide-y divide-slate-100">
