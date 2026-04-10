@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { auth, database } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { ref, onValue } from "firebase/database";
-import { LogOut, Home, FileText, Settings, Users, Megaphone } from "lucide-react";
+import { LogOut, Home, FileText, Settings, Users, Megaphone, Database } from "lucide-react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -37,7 +37,7 @@ export default function DashboardLayout({
       return [
         { name: "Dashboard", href: "/dashboard/admin", icon: Home },
         { name: "Departments", href: "/dashboard/admin/departments", icon: Users },
-        { name: "Templates", href: "/dashboard/admin/templates", icon: FileText },
+        { name: "Knowledge Base", href: "/dashboard/admin/knowledge-base", icon: Database },
         { name: "Announcements", href: "/dashboard/admin/announcements", icon: Megaphone },
         { name: "Settings", href: "/dashboard/admin/settings", icon: Settings },
       ];
