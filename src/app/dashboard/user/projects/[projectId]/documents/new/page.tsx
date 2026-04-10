@@ -28,6 +28,7 @@ export default function NewDocument() {
   const [stage, setStage] = useState<"setup" | "parsing" | "analyzing" | "review" | "error">("setup");
   const [errorMsg, setErrorMsg] = useState("");
   const [finalContent, setFinalContent] = useState("");
+  const [cleanDraftHtml, setCleanDraftHtml] = useState(""); // DOCX-only: no validation notes
   const [docTitle, setDocTitle] = useState("");
   const [saving, setSaving] = useState(false);
   const [isDownloadingDocx, setIsDownloadingDocx] = useState(false);
@@ -88,6 +89,11 @@ export default function NewDocument() {
            </div>` 
         : "";
 
+      // Clean draft for DOCX (no orange validation notes box)
+      const cleanDraft = `<h1 style="text-align:center; margin-bottom:24px;">${extractData.title || selectedTemplate.name}</h1>${extractData.draftHtml}`;
+      setCleanDraftHtml(cleanDraft);
+
+      // Full content for Jodit review (includes the validation notes notice)
       const populated = `<h1 style="text-align:center; margin-bottom:24px;">${extractData.title || selectedTemplate.name}</h1>
           ${notesHtml}
           ${extractData.draftHtml}`;
@@ -137,7 +143,7 @@ export default function NewDocument() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          htmlContent: finalContent,
+          htmlContent: cleanDraftHtml, // no validation notes in the downloaded file
           documentName: documentName.trim() || docTitle,
           templateName: selectedTemplate?.name || '',
         }),
