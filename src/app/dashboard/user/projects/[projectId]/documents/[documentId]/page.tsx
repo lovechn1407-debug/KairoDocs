@@ -5,7 +5,7 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import { database } from "@/lib/firebase";
 import { ref, get, update } from "firebase/database";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Edit3, Save, AlertTriangle, Send, History, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, Edit3, Save, AlertTriangle, Send, History, ChevronDown, ChevronRight, Download } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
@@ -22,7 +22,37 @@ export default function DocumentEditor() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const editorRef = useRef<any>(null);
+
+  const handleDownloadDocx = async () => {
+    if (!document) return;
+    setIsDownloading(true);
+    try {
+      const res = await fetch('/api/generate-docx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          htmlContent: document.documentContent || content,
+          documentName: document.documentName || "Document",
+          templateName: document.templateName || "Template",
+        }),
+      });
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const fileName = document.documentName || "Document";
+      a.download = `${fileName.replace(/\s+/g, '_')}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      alert("DOCX Download Error: " + e.message);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const editorConfig = useMemo(() => ({
     readonly: false,
@@ -134,6 +164,16 @@ export default function DocumentEditor() {
           </div>
 
           <div className="flex items-center gap-3">
+             {document.status === "Approved" && (
+                <button
+                  onClick={handleDownloadDocx}
+                  disabled={isDownloading}
+                  className="flex items-center gap-2 rounded-lg bg-green-600 px-5 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50 transition shadow-sm"
+                >
+                  <Download className="h-4 w-4" />
+                  {isDownloading ? "Generating..." : "Download DOCX"}
+                </button>
+             )}
              <button
               onClick={handleSaveDraft}
               disabled={saving}

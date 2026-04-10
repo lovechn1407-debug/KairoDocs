@@ -4,7 +4,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { useEffect, useState, useRef } from "react";
 import { database } from "@/lib/firebase";
 import { ref, get, update } from "firebase/database";
-import { CheckCircle, XCircle, FileText, X, Edit3, History, ChevronDown, ChevronRight, ChevronUp, Folder } from "lucide-react";
+import { CheckCircle, XCircle, FileText, X, Edit3, History, ChevronDown, ChevronRight, ChevronUp, Folder, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 
@@ -19,6 +19,30 @@ export default function HeadSubmissions() {
   const [feedbackText, setFeedbackText] = useState("");
   const [showFeedbackInput, setShowFeedbackInput] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadDocx = async (contentHtml: string, fileName: string, templateName: string) => {
+    setIsDownloading(true);
+    try {
+      const res = await fetch('/api/generate-docx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ htmlContent: contentHtml, documentName: fileName, templateName }),
+      });
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${fileName.replace(/\s+/g, '_')}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      alert("DOCX Download Error: " + e.message);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const fetchSubs = async () => {
     setLoading(true);
@@ -282,13 +306,23 @@ export default function HeadSubmissions() {
                     </h2>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Project: {selectedSub.projectName} • Submitted on {new Date(selectedSub.createdAt).toLocaleString()}</p>
                   </div>
-                  <button onClick={() => {
-                    setSelectedSub(null);
-                    setShowFeedbackInput(false);
-                    setFeedbackText("");
-                  }} className="text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:text-slate-300 bg-slate-100 p-2 rounded-full transition">
-                    <X className="h-5 w-5" />
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handleDownloadDocx(selectedSub.documentContent, selectedSub.documentName || "Document", selectedSub.templateName || "Template")}
+                      disabled={isDownloading}
+                      className="flex items-center gap-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-lg transition disabled:opacity-50"
+                    >
+                      <Download className="h-4 w-4" />
+                      {isDownloading ? "Generating..." : "Download DOCX"}
+                    </button>
+                    <button onClick={() => {
+                      setSelectedSub(null);
+                      setShowFeedbackInput(false);
+                      setFeedbackText("");
+                    }} className="text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:text-slate-300 bg-slate-100 p-2 rounded-full transition">
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="flex-1 overflow-auto p-6 bg-slate-50 dark:bg-[#0a0a0a] space-y-6">
