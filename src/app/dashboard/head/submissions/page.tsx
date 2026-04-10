@@ -45,6 +45,15 @@ export default function HeadSubmissions() {
         updates.feedback = finalFeedback;
       }
       
+      // Reflect the head's decision on the specific version snapshot that was reviewed
+      if (selectedSub?.versions && selectedSub.versions.length > 0) {
+         const lastIndex = selectedSub.versions.length - 1;
+         updates[`versions/${lastIndex}/status`] = newStatus;
+         if (finalFeedback !== undefined) {
+            updates[`versions/${lastIndex}/feedback`] = finalFeedback;
+         }
+      }
+
       await update(ref(database, `submissions/${subId}`), updates);
       alert(`Document marked as ${newStatus}`);
       setSelectedSub(null);

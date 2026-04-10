@@ -51,11 +51,10 @@ export default function DocumentEditor() {
     if (!content.trim()) return alert("Document is empty!");
     setSaving(true);
     try {
-      // Create version snapshot of current state
+      // Create version snapshot of the newly edited state
       const newVersion = {
-        documentContent: document.documentContent,
-        status: document.status,
-        feedback: document.feedback || null,
+        documentContent: content,
+        status: "Pending",
         savedAt: new Date().toISOString()
       };
       
