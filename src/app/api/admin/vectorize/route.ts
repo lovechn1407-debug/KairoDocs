@@ -68,35 +68,18 @@ export async function POST(req: Request) {
     await index.upsert({ records: vectors } as any);
     console.log(`[Vectorize] Upsert complete.`);
 
-    // Save document registry entry to Firebase for the "view knowledge" panel
-    try {
-      const pushRes = await fetch(`${DB_URL}/ragKnowledge.json`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type, title, tags, version, effectiveDate,
-          chunkCount: vectors.length,
-          vectorIds,
-          uploadedAt: new Date().toISOString(),
-        }),
-      });
-      const pushData = await pushRes.json();
-      // Firebase POST returns { name: "-Nxxx" } — update the entry with its own ID
-      if (pushData?.name) {
-        await fetch(`${DB_URL}/ragKnowledge/${pushData.name}/id.json`, {
-          method: 'PUT',
-          body: JSON.stringify(pushData.name),
-        });
-      }
-      console.log(`[Vectorize] Registry entry saved: ${pushData?.name}`);
-    } catch (fbErr: any) {
-      console.warn('[Vectorize] Firebase registry write failed (non-fatal):', fbErr.message);
-    }
-
+    // Return vectorIds so the authenticated frontend can write the Firebase registry entry
     return NextResponse.json({
       success: true,
       message: `Successfully vectorized and stored ${vectors.length} chunks for "${title}" (v${version}, ${tags.length} tag(s)).`,
-      chunksStored: vectors.length
+      chunksStored: vectors.length,
+      // Metadata for client-side Firebase registry write
+      registryEntry: {
+        type, title, tags, version, effectiveDate,
+        chunkCount: vectors.length,
+        vectorIds,
+        uploadedAt: new Date().toISOString(),
+      }
     });
 
   } catch (error: any) {

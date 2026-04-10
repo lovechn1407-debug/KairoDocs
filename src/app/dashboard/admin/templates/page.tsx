@@ -315,11 +315,24 @@ export default function TemplateEngine() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+
+      // Write registry entry client-side with authenticated Firebase SDK
+      if (data.registryEntry) {
+        try {
+          const registryRef = push(ref(database, "ragKnowledge"));
+          await set(registryRef, { ...data.registryEntry, id: registryRef.key });
+        } catch (fbErr: any) {
+          console.warn("Registry write failed:", fbErr.message);
+        }
+      }
+
       setVectorStatus(`✅ ${data.message}`);
       setRagTitle("");
       setRagText("");
       setRagTags("");
       setRagVersion("1.0");
+      // Refresh the knowledge list so new entry shows immediately
+      fetchKnowledge();
       setTimeout(() => setVectorStatus(""), 5000);
     } catch (e: any) {
       alert("Vectorization failed: " + e.message);
