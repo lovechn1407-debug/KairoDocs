@@ -4,8 +4,6 @@ import { getIndex } from '@/lib/pinecone';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const DB_URL = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL;
-
 export async function DELETE() {
   try {
     // 1. Delete ALL vectors from Pinecone
@@ -14,12 +12,7 @@ export async function DELETE() {
     await index.deleteAll();
     console.log('[Reset] Pinecone cleared.');
 
-    // 2. Clear the Firebase ragKnowledge registry
-    console.log('[Reset] Clearing Firebase ragKnowledge registry...');
-    await fetch(`${DB_URL}/ragKnowledge.json`, { method: 'DELETE' });
-    console.log('[Reset] Firebase registry cleared.');
-
-    return NextResponse.json({ success: true, message: 'All vectors and registry entries have been deleted.' });
+    return NextResponse.json({ success: true, message: 'All Pinecone vectors have been deleted. Firebase registry is untouched.' });
   } catch (error: any) {
     console.error('[Reset] Error:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
