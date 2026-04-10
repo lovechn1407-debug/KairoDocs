@@ -3,6 +3,9 @@ import { getIndex } from "@/lib/pinecone";
 import { embedText } from "@/lib/huggingface";
 import { marked } from "marked";
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
