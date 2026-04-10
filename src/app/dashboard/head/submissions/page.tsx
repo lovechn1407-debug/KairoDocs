@@ -4,7 +4,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { useEffect, useState, useRef } from "react";
 import { database } from "@/lib/firebase";
 import { ref, get, update } from "firebase/database";
-import { CheckCircle, XCircle, FileText, X, Edit3 } from "lucide-react";
+import { CheckCircle, XCircle, FileText, X, Edit3, History, ChevronDown, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 
@@ -17,6 +17,7 @@ export default function HeadSubmissions() {
   const [acting, setActing] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
   const [showFeedbackInput, setShowFeedbackInput] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const fetchSubs = async () => {
     setLoading(true);
@@ -142,7 +143,7 @@ export default function HeadSubmissions() {
                   </button>
                 </div>
                 
-                <div className="flex-1 overflow-auto p-6 bg-slate-50">
+                <div className="flex-1 overflow-auto p-6 bg-slate-50 space-y-6">
                    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden pointer-events-none">
                      {/* Readonly editor to see the exact document output safely */}
                      <JoditEditor
@@ -151,6 +152,49 @@ export default function HeadSubmissions() {
                         onBlur={()=>{}} onChange={()=>{}}
                      />
                    </div>
+
+                   {/* Version History */}
+                   {selectedSub.versions && selectedSub.versions.length > 0 && (
+                     <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                       <button 
+                         onClick={() => setShowHistory(!showHistory)}
+                         className="flex items-center justify-between w-full p-4 bg-slate-50 hover:bg-slate-100 transition"
+                       >
+                         <div className="flex items-center gap-2">
+                           <History className="h-5 w-5 text-slate-500" />
+                           <span className="font-semibold text-slate-700">Version History ({selectedSub.versions.length})</span>
+                         </div>
+                         {showHistory ? <ChevronDown className="h-5 w-5 text-slate-400"/> : <ChevronRight className="h-5 w-5 text-slate-400"/>}
+                       </button>
+                       {showHistory && (
+                         <div className="p-4 space-y-4 border-t border-slate-200">
+                           {selectedSub.versions.map((ver: any, i: number) => (
+                             <div key={i} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                               <div className="flex justify-between items-center mb-2">
+                                 <h4 className="font-semibold text-slate-800">Version {i + 1}</h4>
+                                 <span className="text-xs text-slate-500">{new Date(ver.savedAt).toLocaleString()}</span>
+                               </div>
+                               <div className="mb-3 text-xs font-medium bg-slate-200 text-slate-700 inline-block px-2 py-0.5 rounded">
+                                 Status: {ver.status}
+                               </div>
+                               {ver.feedback && (
+                                 <div className="text-sm bg-orange-50 text-orange-800 p-2.5 rounded mb-3 border border-orange-100">
+                                   <strong>Feedback Given:</strong> {ver.feedback}
+                                 </div>
+                               )}
+                               <details>
+                                 <summary className="text-sm text-blue-600 font-medium cursor-pointer hover:underline mb-2 pointer-events-auto">View Document Content</summary>
+                                 <div 
+                                   className="prose prose-sm max-w-none bg-white p-4 border border-slate-200 rounded mt-2 max-h-64 overflow-y-auto pointer-events-none"
+                                   dangerouslySetInnerHTML={{ __html: ver.documentContent }}
+                                 />
+                               </details>
+                             </div>
+                           ))}
+                         </div>
+                       )}
+                     </div>
+                   )}
                 </div>
 
                 <div className="p-6 border-t border-slate-200 bg-white rounded-b-2xl">

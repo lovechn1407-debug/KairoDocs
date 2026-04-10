@@ -5,7 +5,7 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import { database } from "@/lib/firebase";
 import { ref, get, update } from "firebase/database";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Edit3, Save, AlertTriangle, Send } from "lucide-react";
+import { ArrowLeft, Edit3, Save, AlertTriangle, Send, History, ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
@@ -21,6 +21,7 @@ export default function DocumentEditor() {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const editorRef = useRef<any>(null);
 
   const editorConfig = useMemo(() => ({
@@ -50,9 +51,21 @@ export default function DocumentEditor() {
     if (!content.trim()) return alert("Document is empty!");
     setSaving(true);
     try {
+      // Create version snapshot of current state
+      const newVersion = {
+        documentContent: document.documentContent,
+        status: document.status,
+        feedback: document.feedback || null,
+        savedAt: new Date().toISOString()
+      };
+      
+      const versions = [...(document.versions || []), newVersion];
+
       await update(ref(database, `submissions/${documentId}`), {
         documentContent: content,
         status: "Pending", // Mark it back to pending
+        feedback: null, // Clear the old feedback
+        versions: versions,
         updatedAt: new Date().toISOString()
       });
       alert("Document resubmitted successfully! It is now Pending review.");
@@ -164,6 +177,49 @@ export default function DocumentEditor() {
                 <div className="bg-green-50 border border-green-200 p-4 rounded-xl text-green-800 text-sm font-medium text-center shadow-sm">
                     This document has been Approved. Editing it here and resubmitting will change its status back to Pending.
                 </div>
+            )}
+
+            {/* Version History */}
+            {document.versions && document.versions.length > 0 && (
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                <button 
+                  onClick={() => setShowHistory(!showHistory)}
+                  className="flex items-center justify-between w-full p-4 bg-slate-50 hover:bg-slate-100 transition"
+                >
+                  <div className="flex items-center gap-2">
+                    <History className="h-5 w-5 text-slate-500" />
+                    <span className="font-semibold text-slate-700">Version History ({document.versions.length})</span>
+                  </div>
+                  {showHistory ? <ChevronDown className="h-5 w-5 text-slate-400"/> : <ChevronRight className="h-5 w-5 text-slate-400"/>}
+                </button>
+                {showHistory && (
+                  <div className="p-4 space-y-4 border-t border-slate-200">
+                    {document.versions.map((ver: any, i: number) => (
+                      <div key={i} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                        <div className="flex justify-between items-center mb-2">
+                          <h4 className="font-semibold text-slate-800">Version {i + 1}</h4>
+                          <span className="text-xs text-slate-500">{new Date(ver.savedAt).toLocaleString()}</span>
+                        </div>
+                        <div className="mb-3 text-xs font-medium bg-slate-200 text-slate-700 inline-block px-2 py-0.5 rounded">
+                          Status: {ver.status}
+                        </div>
+                        {ver.feedback && (
+                          <div className="text-sm bg-orange-50 text-orange-800 p-2.5 rounded mb-3 border border-orange-100">
+                            <strong>Feedback Required:</strong> {ver.feedback}
+                          </div>
+                        )}
+                        <details>
+                          <summary className="text-sm text-blue-600 font-medium cursor-pointer hover:underline mb-2">View Document Content</summary>
+                          <div 
+                            className="prose prose-sm max-w-none bg-white p-4 border border-slate-200 rounded mt-2 max-h-64 overflow-y-auto"
+                            dangerouslySetInnerHTML={{ __html: ver.documentContent }}
+                          />
+                        </details>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Editor */}
