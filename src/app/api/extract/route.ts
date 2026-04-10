@@ -6,7 +6,11 @@ import { marked } from "marked";
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GROQ_KEYS = [
+  process.env.GROQ_API_KEY,
+  process.env.GROQ_API_KEY_2,
+].filter(Boolean) as string[];
+
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 const GROQ_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"];
@@ -16,23 +20,25 @@ const GEMINI_MODELS = [
 ];
 
 async function callGroq(prompt: string): Promise<string | null> {
-  for (const model of GROQ_MODELS) {
-    try {
-      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${GROQ_API_KEY}` },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.1,
-          max_tokens: 6000,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) { console.warn(`[Groq] ${model}: ${data?.error?.message}`); continue; }
-      const text = data?.choices?.[0]?.message?.content;
-      if (text) { console.log(`[Groq] ✓ ${model}`); return text; }
-    } catch (e: any) { console.warn(`[Groq] ${model}: ${e.message}`); }
+  for (const apiKey of GROQ_KEYS) {
+    for (const model of GROQ_MODELS) {
+      try {
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.1,
+            max_tokens: 6000,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) { console.warn(`[Groq] ${model}: ${data?.error?.message}`); continue; }
+        const text = data?.choices?.[0]?.message?.content;
+        if (text) { console.log(`[Groq] ✓ ${model}`); return text; }
+      } catch (e: any) { console.warn(`[Groq] ${model}: ${e.message}`); }
+    }
   }
   return null;
 }
@@ -59,8 +65,11 @@ async function callGemini(prompt: string): Promise<string | null> {
 }
 
 async function callAI(prompt: string): Promise<string> {
-  const result = await callGroq(prompt) || await callGemini(prompt);
-  if (!result) throw new Error("All AI providers failed. Please check your API keys.");
+  if (GROQ_KEYS.length === 0 && !GEMINI_API_KEY) {
+    throw new Error("No AI API keys configured. Please add GROQ_API_KEY or GEMINI_API_KEY to your Vercel environment variables.");
+  }
+  const result = (GROQ_KEYS.length > 0 ? await callGroq(prompt) : null) || (GEMINI_API_KEY ? await callGemini(prompt) : null);
+  if (!result) throw new Error("All AI providers failed. Please check your API keys in Vercel.");
   return result;
 }
 
