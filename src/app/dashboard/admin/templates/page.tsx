@@ -106,12 +106,56 @@ export default function TemplateEngine() {
   const [ragDate, setRagDate] = useState(new Date().toISOString().split('T')[0]);
   const [isVectorizing, setIsVectorizing] = useState(false);
   const [vectorStatus, setVectorStatus] = useState("");
+  // RAG Knowledge Viewer states
+  const [ragKnowledge, setRagKnowledge] = useState<any[]>([]);
+  const [totalVectors, setTotalVectors] = useState(0);
+  const [loadingKnowledge, setLoadingKnowledge] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     get(ref(database, "templates")).then(snap => {
       if (snap.exists()) setSavedTemplates(Object.values(snap.val()));
     });
   }, []);
+
+  const fetchKnowledge = async () => {
+    setLoadingKnowledge(true);
+    try {
+      const res = await fetch('/api/admin/vectors');
+      const data = await res.json();
+      if (data.success) {
+        setRagKnowledge((data.entries as any[]).sort((a, b) => 
+          new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+        ));
+        setTotalVectors(data.totalVectors);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch knowledge:', e);
+    } finally {
+      setLoadingKnowledge(false);
+    }
+  };
+
+  const handleDeleteKnowledge = async (entry: any) => {
+    if (!confirm(`Delete "${entry.title}" from Pinecone?`)) return;
+    setDeletingId(entry.id);
+    try {
+      const res = await fetch('/api/admin/vectors', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ registryId: entry.id, vectorIds: entry.vectorIds }),
+      });
+      if (res.ok) {
+        setRagKnowledge(prev => prev.filter(e => e.id !== entry.id));
+      } else {
+        alert('Delete failed.');
+      }
+    } catch (e) {
+      alert('Delete failed.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // ─── Jodit Config ───────────────────────────────────────────────────────
   const config = useMemo(() => ({
@@ -288,7 +332,7 @@ export default function TemplateEngine() {
                 <span className="flex items-center gap-1.5"><Eye className="h-3.5 w-3.5" /> Saved Templates ({savedTemplates.length})</span>
               </button>
               <button
-                onClick={() => setActiveTab("rag")}
+                onClick={() => { setActiveTab("rag"); fetchKnowledge(); }}
                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${activeTab === "rag" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
               >
                 <span className="flex items-center gap-1.5"><Database className="h-3.5 w-3.5" /> RAG Knowledge Base</span>
@@ -436,6 +480,69 @@ export default function TemplateEngine() {
                     {isVectorizing ? "Chunking & Vectorizing into Pinecone..." : "Embed into Pinecone"}
                   </button>
                   {vectorStatus && <p className="text-sm mt-3 text-center font-medium text-green-700">{vectorStatus}</p>}
+                </div>
+              </div>
+
+              {/* Stored Knowledge Viewer */}
+              <div className="max-w-3xl mx-auto mt-6 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
+                  <div className="flex items-center gap-2">
+                    <Database className="h-5 w-5 text-indigo-500" />
+                    <h3 className="font-bold text-slate-800">Stored Knowledge</h3>
+                    {totalVectors > 0 && <span className="text-xs bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full">{totalVectors} vectors</span>}
+                  </div>
+                  <button
+                    onClick={fetchKnowledge}
+                    disabled={loadingKnowledge}
+                    className="text-sm font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
+                  >
+                    {loadingKnowledge ? 'Loading...' : '↻ Refresh'}
+                  </button>
+                </div>
+
+                <div className="divide-y divide-slate-100">
+                  {ragKnowledge.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <p className="text-slate-400 text-sm">{loadingKnowledge ? 'Fetching...' : 'No entries yet. Upload a document above to populate the knowledge base.'}</p>
+                    </div>
+                  ) : (
+                    ragKnowledge.map(entry => (
+                      <div key={entry.id} className="flex items-start justify-between gap-4 p-4 hover:bg-slate-50 transition">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                              entry.type === 'template' 
+                                ? 'bg-blue-100 text-blue-700' 
+                                : 'bg-purple-100 text-purple-700'
+                            }`}>
+                              {entry.type === 'template' ? 'Template' : 'Precedent'}
+                            </span>
+                            <h4 className="font-semibold text-slate-800 truncate">{entry.title}</h4>
+                          </div>
+                          <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                            <span>v{entry.version}</span>
+                            {entry.effectiveDate && <span>Effective: {entry.effectiveDate}</span>}
+                            <span>{entry.chunkCount} chunks</span>
+                            <span>Uploaded: {new Date(entry.uploadedAt).toLocaleDateString()}</span>
+                          </div>
+                          {entry.tags && entry.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {(Array.isArray(entry.tags) ? entry.tags : entry.tags.split(',')).map((tag: string) => (
+                                <span key={tag} className="bg-slate-100 text-slate-600 text-[10px] font-medium px-1.5 py-0.5 rounded">{tag.trim()}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleDeleteKnowledge(entry)}
+                          disabled={deletingId === entry.id}
+                          className="flex-shrink-0 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-40 transition"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>

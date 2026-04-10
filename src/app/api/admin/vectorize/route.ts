@@ -6,6 +6,8 @@ import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+const DB_URL = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL;
+
 export async function POST(req: Request) {
   try {
     const { type, title, text, tags = [], version = '1.0', effectiveDate = '' } = await req.json();
@@ -33,24 +35,25 @@ export async function POST(req: Request) {
 
     const effectiveDateMs = effectiveDate ? new Date(effectiveDate).getTime() : Date.now();
     const safeTitle = title.replace(/\s+/g, '-').toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const vectorIds: string[] = [];
 
     const vectors = [];
     for (let i = 0; i < chunks.length; i++) {
       const chunkText = chunks[i].pageContent;
-
-      // Calculate 384-dimensional vector using Hugging Face
       const embedding = await embedText(chunkText);
+      const id = `${safeTitle}-v${version}-chunk-${i}-${effectiveDateMs}`;
+      vectorIds.push(id);
 
       vectors.push({
-        id: `${safeTitle}-v${version}-chunk-${i}-${effectiveDateMs}`,
+        id,
         values: embedding,
         metadata: {
-          type,                                    // "template" | "precedent"
+          type,
           title,
-          tags: tags.join(','),                    // Store as comma string for Pinecone metadata filtering
+          tags: tags.join(','),
           version,
           effectiveDate,
-          effectiveDateMs,                         // numeric epoch for sorting by recency
+          effectiveDateMs,
           text: chunkText,
         }
       });
@@ -61,11 +64,34 @@ export async function POST(req: Request) {
     }
 
     console.log(`[Vectorize] Upserting ${vectors.length} vectors into Pinecone...`);
-    // Pinecone v7 SDK requires { records: [...] } — bare array causes "Must pass at least 1 record" error
     const index = getIndex();
     await index.upsert({ records: vectors } as any);
     console.log(`[Vectorize] Upsert complete.`);
 
+    // Save document registry entry to Firebase for the "view knowledge" panel
+    try {
+      const pushRes = await fetch(`${DB_URL}/ragKnowledge.json`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type, title, tags, version, effectiveDate,
+          chunkCount: vectors.length,
+          vectorIds,
+          uploadedAt: new Date().toISOString(),
+        }),
+      });
+      const pushData = await pushRes.json();
+      // Firebase POST returns { name: "-Nxxx" } — update the entry with its own ID
+      if (pushData?.name) {
+        await fetch(`${DB_URL}/ragKnowledge/${pushData.name}/id.json`, {
+          method: 'PUT',
+          body: JSON.stringify(pushData.name),
+        });
+      }
+      console.log(`[Vectorize] Registry entry saved: ${pushData?.name}`);
+    } catch (fbErr: any) {
+      console.warn('[Vectorize] Firebase registry write failed (non-fatal):', fbErr.message);
+    }
 
     return NextResponse.json({
       success: true,
