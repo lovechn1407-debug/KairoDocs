@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { database } from "@/lib/firebase";
 import { ref, get } from "firebase/database";
 import { useAuth } from "@/context/AuthContext";
-import { ArrowLeft, Plus, FileText, Clock, CheckCircle, XCircle, Folder } from "lucide-react";
+import { ArrowLeft, Plus, FileText, Clock, CheckCircle, XCircle, Folder, Edit3 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useParams } from "next/navigation";
@@ -55,6 +55,11 @@ export default function ProjectDetail() {
       case "Rejected": return (
         <span className="flex items-center gap-1 text-xs font-medium bg-red-100 text-red-800 px-2.5 py-1 rounded-full">
           <XCircle className="h-3 w-3" /> Rejected
+        </span>
+      );
+      case "Needs Edit": return (
+        <span className="flex items-center gap-1 text-xs font-medium bg-orange-100 text-orange-800 px-2.5 py-1 rounded-full">
+          <Edit3 className="h-3 w-3" /> Needs Edit
         </span>
       );
       default: return (
@@ -161,7 +166,9 @@ export default function ProjectDetail() {
                   </div>
                   <div className="flex items-center gap-4">
                     {getStatusBadge(doc.status)}
-                    <button className="text-sm text-blue-600 font-medium hover:underline">View</button>
+                    <Link href={`/dashboard/user/projects/${projectId}/documents/${doc.id}`}>
+                      <button className="text-sm text-blue-600 font-medium hover:underline">View</button>
+                    </Link>
                   </div>
                 </motion.div>
               ))}

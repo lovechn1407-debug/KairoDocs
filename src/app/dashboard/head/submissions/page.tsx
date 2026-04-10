@@ -4,7 +4,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { useEffect, useState, useRef } from "react";
 import { database } from "@/lib/firebase";
 import { ref, get, update } from "firebase/database";
-import { CheckCircle, XCircle, FileText, X } from "lucide-react";
+import { CheckCircle, XCircle, FileText, X, Edit3 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 
@@ -15,6 +15,8 @@ export default function HeadSubmissions() {
   const [loading, setLoading] = useState(true);
   const [selectedSub, setSelectedSub] = useState<any>(null);
   const [acting, setActing] = useState(false);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [showFeedbackInput, setShowFeedbackInput] = useState(false);
 
   const fetchSubs = async () => {
     setLoading(true);
@@ -34,14 +36,19 @@ export default function HeadSubmissions() {
     fetchSubs();
   }, []);
 
-  const handleAction = async (subId: string, newStatus: string) => {
+  const handleAction = async (subId: string, newStatus: string, finalFeedback?: string) => {
     setActing(true);
     try {
-      await update(ref(database, `submissions/${subId}`), {
-        status: newStatus
-      });
+      const updates: any = { status: newStatus };
+      if (finalFeedback !== undefined) {
+        updates.feedback = finalFeedback;
+      }
+      
+      await update(ref(database, `submissions/${subId}`), updates);
       alert(`Document marked as ${newStatus}`);
       setSelectedSub(null);
+      setFeedbackText("");
+      setShowFeedbackInput(false);
       await fetchSubs();
     } catch(e) {
       alert("Error updating status");
@@ -53,6 +60,7 @@ export default function HeadSubmissions() {
   const getBadge = (status: string) => {
     if (status === "Approved") return <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs font-semibold">Approved</span>;
     if (status === "Rejected") return <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded text-xs font-semibold">Rejected</span>;
+    if (status === "Needs Edit") return <span className="bg-orange-100 text-orange-800 px-2 py-0.5 rounded text-xs font-semibold">Needs Edit</span>;
     return <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-xs font-semibold">Pending</span>;
   }
 
@@ -125,7 +133,11 @@ export default function HeadSubmissions() {
                     <h2 className="text-xl font-bold text-slate-900">Reviewing: {selectedSub.projectName}</h2>
                     <p className="text-sm text-slate-500">Submitted by {selectedSub.userEmail} on {new Date(selectedSub.createdAt).toLocaleString()}</p>
                   </div>
-                  <button onClick={() => setSelectedSub(null)} className="text-slate-400 hover:text-slate-700 bg-slate-100 p-2 rounded-full">
+                  <button onClick={() => {
+                    setSelectedSub(null);
+                    setShowFeedbackInput(false);
+                    setFeedbackText("");
+                  }} className="text-slate-400 hover:text-slate-700 bg-slate-100 p-2 rounded-full">
                     <X className="h-5 w-5" />
                   </button>
                 </div>
@@ -141,24 +153,66 @@ export default function HeadSubmissions() {
                    </div>
                 </div>
 
-                <div className="p-6 border-t border-slate-200 bg-white flex justify-end gap-4 rounded-b-2xl">
-                  {selectedSub.status !== "Rejected" && (
-                    <button 
-                      disabled={acting}
-                      onClick={() => handleAction(selectedSub.id, "Rejected")}
-                      className="flex items-center gap-2 px-6 py-2 rounded-lg font-medium text-red-700 bg-red-50 hover:bg-red-100 disabled:opacity-50"
-                    >
-                      <XCircle className="h-5 w-5"/> Reject Document
-                    </button>
-                  )}
-                  {selectedSub.status !== "Approved" && (
-                    <button 
-                      disabled={acting}
-                      onClick={() => handleAction(selectedSub.id, "Approved")}
-                      className="flex items-center gap-2 px-6 py-2 rounded-lg font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
-                    >
-                      <CheckCircle className="h-5 w-5"/> Approve Document
-                    </button>
+                <div className="p-6 border-t border-slate-200 bg-white rounded-b-2xl">
+                  {showFeedbackInput ? (
+                    <div className="space-y-4">
+                      <label className="block text-sm font-medium text-slate-700">Reason for Re-edit (Feedback)</label>
+                      <textarea
+                        value={feedbackText}
+                        onChange={e => setFeedbackText(e.target.value)}
+                        placeholder="Please modify the financial terms correctly..."
+                        rows={3}
+                        className="w-full rounded-lg border border-slate-300 px-4 py-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                      <div className="flex justify-end gap-3">
+                        <button 
+                          disabled={acting}
+                          onClick={() => { setShowFeedbackInput(false); setFeedbackText(""); }}
+                          className="px-5 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg"
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          disabled={acting || !feedbackText.trim()}
+                          onClick={() => handleAction(selectedSub.id, "Needs Edit", feedbackText.trim())}
+                          className="flex items-center gap-2 px-6 py-2 rounded-lg font-medium text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50"
+                        >
+                           Send Feedback
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-end gap-4">
+                      {selectedSub.status !== "Rejected" && (
+                        <button 
+                          disabled={acting}
+                          onClick={() => handleAction(selectedSub.id, "Rejected", "")}
+                          className="flex items-center gap-2 px-6 py-2 rounded-lg font-medium text-red-700 bg-red-50 hover:bg-red-100 disabled:opacity-50"
+                        >
+                          <XCircle className="h-5 w-5"/> Reject Document
+                        </button>
+                      )}
+                      
+                      {selectedSub.status !== "Needs Edit" && selectedSub.status !== "Approved" && (
+                        <button 
+                          disabled={acting}
+                          onClick={() => setShowFeedbackInput(true)}
+                          className="flex items-center gap-2 px-6 py-2 rounded-lg font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 disabled:opacity-50"
+                        >
+                          <Edit3 className="h-5 w-5"/> Suggest Re-edit
+                        </button>
+                      )}
+
+                      {selectedSub.status !== "Approved" && (
+                        <button 
+                          disabled={acting}
+                          onClick={() => handleAction(selectedSub.id, "Approved", "")}
+                          className="flex items-center gap-2 px-6 py-2 rounded-lg font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
+                        >
+                          <CheckCircle className="h-5 w-5"/> Approve Document
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </motion.div>
