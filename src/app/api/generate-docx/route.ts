@@ -30,9 +30,9 @@ function makeTextRuns(html: string): TextRun[] {
     const bold = /^<(strong|b)/i.test(part);
     const italic = /^<(em|i)/i.test(part);
     const text = stripTags(part);
-    if (text) runs.push(new TextRun({ text, bold, italics: italic, font: 'Times New Roman', size: 24 }));
+    if (text) runs.push(new TextRun({ text, bold, italics: italic, font: 'Garamond', size: 24 }));
   }
-  return runs.length ? runs : [new TextRun({ text: '', font: 'Times New Roman', size: 24 })];
+  return runs.length ? runs : [new TextRun({ text: '', font: 'Garamond', size: 24 })];
 }
 
 // ─── Table parser ─────────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ function parseTable(tableHtml: string): Table {
             children: [new TextRun({
               text: cellText,
               bold: isHeader,
-              font: 'Times New Roman',
+              font: 'Garamond',
               size: isHeader ? 22 : 22,
               color: isHeader ? 'FFFFFF' : '000000',
             })],
@@ -151,7 +151,7 @@ function htmlToDocxChildren(html: string): (Paragraph | Table)[] {
         }));
       } else if (tag === 'li') {
         children.push(new Paragraph({
-          children: [new TextRun({ text: inner, font: 'Times New Roman', size: 24 })],
+          children: [new TextRun({ text: inner, font: 'Garamond', size: 24 })],
           bullet: { level: 0 },
           spacing: { after: 60 },
         }));
@@ -173,11 +173,14 @@ function htmlToDocxChildren(html: string): (Paragraph | Table)[] {
 
 export async function POST(req: Request) {
   try {
-    const { htmlContent, documentName, templateName } = await req.json();
+    let { htmlContent, documentName, templateName } = await req.json();
 
     if (!htmlContent) {
       return NextResponse.json({ error: 'No content provided.' }, { status: 400 });
     }
+
+    // Strip the AI RAG Validation Notes so it never appears in the downloaded DOCX file
+    htmlContent = htmlContent.replace(/<div(?:[^>]*)?>\s*<strong>⚠️ AI RAG Validation Notes:<\/strong>[\s\S]*?<\/div>/gi, '');
 
     const title = documentName || templateName || 'Generated Document';
     const children = htmlToDocxChildren(htmlContent);
@@ -193,18 +196,18 @@ export async function POST(req: Request) {
       styles: {
         default: {
           document: {
-            run: { font: 'Times New Roman', size: 24 },
+            run: { font: 'Garamond', size: 24 },
           },
           heading1: {
-            run: { font: 'Times New Roman', size: 32, bold: true, color: '1e3a6e' },
+            run: { font: 'Garamond', size: 32, bold: true, color: '1e3a6e' },
             paragraph: { spacing: { after: 240 }, alignment: AlignmentType.CENTER },
           },
           heading2: {
-            run: { font: 'Times New Roman', size: 28, bold: true, color: '1e3a6e' },
+            run: { font: 'Garamond', size: 28, bold: true, color: '1e3a6e' },
             paragraph: { spacing: { before: 240, after: 120 } },
           },
           heading3: {
-            run: { font: 'Times New Roman', size: 26, bold: true, color: '2d5986' },
+            run: { font: 'Garamond', size: 26, bold: true, color: '2d5986' },
             paragraph: { spacing: { before: 180, after: 80 } },
           },
         },
