@@ -53,10 +53,10 @@ export default function UserDashboard() {
       <div className="p-8 max-w-6xl mx-auto space-y-8">
         <header className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-            <p className="text-slate-500 mt-1">Welcome back! Here's an overview of your projects.</p>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Dashboard</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">Welcome back! Here's an overview of your projects.</p>
             {userProfile?.departmentName && (
-              <span className="inline-flex items-center gap-1.5 mt-2 text-xs font-medium bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+              <span className="inline-flex items-center gap-1.5 mt-2 text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-full">
                 <Building2 className="h-3 w-3" />
                 Department: {userProfile.departmentName}
               </span>
@@ -81,13 +81,13 @@ export default function UserDashboard() {
               <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
-                className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100"
+                className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800/50"
               >
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-${stat.color}-50`}>
                   <Icon className={`h-6 w-6 text-${stat.color}-600`} />
                 </div>
-                <h3 className="text-sm font-medium text-slate-500">{stat.label}</h3>
-                <p className="text-3xl font-bold text-slate-900 mt-1">{stat.value}</p>
+                <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">{stat.label}</h3>
+                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-1">{stat.value}</p>
               </motion.div>
             );
           })}
@@ -96,16 +96,16 @@ export default function UserDashboard() {
         {/* Recent Projects */}
         <section>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-slate-900">Recent Projects</h2>
-            <Link href="/dashboard/user/projects" className="text-blue-600 text-sm font-medium hover:underline flex items-center gap-1">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Recent Projects</h2>
+            <Link href="/dashboard/user/projects" className="text-blue-600 dark:text-blue-400 text-sm font-medium hover:underline flex items-center gap-1">
               View all <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
 
           {recentProjects.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
-              <Folder className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500">No projects yet. Create your first project to get started.</p>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center shadow-sm">
+              <Folder className="h-10 w-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+              <p className="text-slate-500 dark:text-slate-400">No projects yet. Create your first project to get started.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -115,17 +115,17 @@ export default function UserDashboard() {
                   initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.07 }}
                 >
                   <Link href={`/dashboard/user/projects/${project.id}`}>
-                    <div className="bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-sm flex items-center justify-between group transition-all cursor-pointer">
+                    <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-300 hover:shadow-sm flex items-center justify-between group transition-all cursor-pointer">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                          <Folder className="h-5 w-5 text-blue-600" />
+                        <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                          <Folder className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div>
-                          <p className="font-semibold text-slate-900 group-hover:text-blue-700">{project.name}</p>
-                          <p className="text-xs text-slate-400">{new Date(project.createdAt).toLocaleDateString()}</p>
+                          <p className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-blue-700 dark:text-blue-400">{project.name}</p>
+                          <p className="text-xs text-slate-400 dark:text-slate-500">{new Date(project.createdAt).toLocaleDateString()}</p>
                         </div>
                       </div>
-                      <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
+                      <ArrowRight className="h-4 w-4 text-slate-300 dark:text-slate-600 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
                     </div>
                   </Link>
                 </motion.div>

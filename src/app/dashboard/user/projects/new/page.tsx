@@ -136,11 +136,11 @@ export default function NewProject() {
 
   return (
     <ProtectedRoute allowedRoles={["user"]}>
-      <div className="flex h-screen flex-col w-full bg-slate-50 overflow-hidden">
+      <div className="flex h-screen flex-col w-full bg-slate-50 dark:bg-[#0a0a0a] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 py-4">
           <div className="flex items-center gap-4">
-            <Link href="/dashboard/user" className="text-slate-400 hover:text-slate-600">
+            <Link href="/dashboard/user" className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-300">
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <h1 className="text-xl font-bold text-slate-800">New Incubation Project</h1>
@@ -171,11 +171,11 @@ export default function NewProject() {
             
             {/* Step 1: Select Format & Upload */}
             {processingState !== "done" && (
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
                 <h2 className="text-lg font-semibold mb-4">1. Document Setup</h2>
                 <div className="grid grid-cols-2 gap-8">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Select Format Template</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Select Format Template</label>
                     <select
                       className="w-full rounded-lg border border-slate-300 px-4 py-3 focus:border-blue-500 focus:outline-none"
                       onChange={(e) => {
@@ -192,16 +192,16 @@ export default function NewProject() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Upload Source Document</label>
-                    <div className="relative border-2 border-dashed border-slate-300 rounded-lg p-4 flex flex-col items-center justify-center hover:bg-slate-50 transition-colors">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Upload Source Document</label>
+                    <div className="relative border-2 border-dashed border-slate-300 rounded-lg p-4 flex flex-col items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                       <input
                         type="file"
                         accept=".pdf"
                         onChange={(e) => setFile(e.target.files?.[0] || null)}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       />
-                      <UploadCloud className="h-8 w-8 text-slate-400 mb-2" />
-                      <span className="text-sm font-medium text-slate-600">
+                      <UploadCloud className="h-8 w-8 text-slate-400 dark:text-slate-500 mb-2" />
+                      <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
                         {file ? file.name : "Click or drag a PDF here"}
                       </span>
                     </div>
@@ -222,7 +222,7 @@ export default function NewProject() {
                 </div>
                 
                 {errorMsg && (
-                  <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-200">
+                  <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/30 text-red-700 rounded-lg text-sm border border-red-200">
                     {errorMsg}
                   </div>
                 )}
@@ -234,15 +234,15 @@ export default function NewProject() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                    <h2 className="text-lg font-semibold flex items-center gap-2">
-                     <span className="bg-blue-100 text-blue-700 w-6 h-6 flex items-center justify-center rounded-full text-xs">2</span>
+                     <span className="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400 w-6 h-6 flex items-center justify-center rounded-full text-xs">2</span>
                      Review Generated Document
                    </h2>
-                   <button onClick={() => setProcessingState("idle")} className="text-sm text-slate-500 hover:text-slate-800 underline">
+                   <button onClick={() => setProcessingState("idle")} className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 underline">
                      Start Over
                    </button>
                 </div>
                 
-                <div className="rounded-xl border border-slate-200 shadow-sm bg-white overflow-hidden">
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
                   <JoditEditor
                     value={finalContent}
                     config={{ readonly: false, height: 600, allowResizeX: false, allowResizeY: true }}

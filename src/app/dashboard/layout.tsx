@@ -59,17 +59,17 @@ export default function DashboardLayout({
   if (loading) return null;
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-screen bg-slate-50 dark:bg-[#0a0a0a]">
       {/* Sidebar */}
-      <aside className="w-64 flex-col bg-white border-r border-slate-200 hidden md:flex">
-        <div className="h-16 flex items-center px-6 border-b border-slate-200">
+      <aside className="w-64 flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 hidden md:flex">
+        <div className="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800">
           <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             KairoDocs
           </h1>
         </div>
         
         <div className="px-6 py-4">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+          <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">
             {role} Panel
           </p>
           <nav className="space-y-1">
@@ -82,11 +82,11 @@ export default function DashboardLayout({
                   href={item.href}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                      ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
-                  <Icon className={`h-4 w-4 ${isActive ? "text-blue-600" : "text-slate-400"}`} />
+                  <Icon className={`h-4 w-4 ${isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}`} />
                   {item.name}
                 </Link>
               );
@@ -94,20 +94,20 @@ export default function DashboardLayout({
           </nav>
         </div>
 
-        <div className="mt-auto border-t border-slate-200 p-4">
+        <div className="mt-auto border-t border-slate-200 dark:border-slate-800 p-4">
           <div className="flex items-center gap-3 px-3 mb-4">
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
+            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-700 dark:text-blue-400 font-bold">
               {user?.email?.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-medium text-slate-900 truncate">
+              <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
                 {user?.email}
               </p>
             </div>
           </div>
           <button
             onClick={handleSignOut}
-            className="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            className="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:bg-red-900/30 rounded-lg transition-colors"
           >
             <LogOut className="h-4 w-4" />
             Sign Out

@@ -53,28 +53,28 @@ export default function AdminAnnouncements() {
     <ProtectedRoute allowedRoles={["admin"]}>
       <div className="p-8 max-w-4xl mx-auto space-y-8 flex-1">
         <header>
-          <h1 className="text-3xl font-bold text-slate-900">Global Announcements</h1>
-          <p className="text-slate-500 mt-1">Configure the global ticker tape seen by users and mentors.</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Global Announcements</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Configure the global ticker tape seen by users and mentors.</p>
         </header>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Megaphone className="h-5 w-5 text-blue-600" /> Current Announcement Edit
+              <Megaphone className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Current Announcement Edit
             </h2>
             <label className="flex items-center gap-2 text-sm font-medium">
               <input 
                 type="checkbox" 
                 checked={announcement.active}
                 onChange={(e) => setAnnouncement({...announcement, active: e.target.checked})}
-                className="w-4 h-4 text-blue-600 rounded"
+                className="w-4 h-4 text-blue-600 dark:text-blue-400 rounded"
               />
               Show Global Announcement
             </label>
           </div>
 
           <div>
-             <label className="block text-sm font-medium text-slate-700 mb-2">Message Text</label>
+             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Message Text</label>
              <textarea 
                value={announcement.text}
                onChange={(e) => setAnnouncement({...announcement, text: e.target.value})}
@@ -85,7 +85,7 @@ export default function AdminAnnouncements() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
              {/* Colors */}
              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Text Color</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Text Color</label>
                 <input 
                   type="color" 
                   value={announcement.color}
@@ -94,7 +94,7 @@ export default function AdminAnnouncements() {
                 />
              </div>
              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Background Color</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Background Color</label>
                 <input 
                   type="color" 
                   value={announcement.bgColor}
@@ -105,7 +105,7 @@ export default function AdminAnnouncements() {
 
              {/* Speed */}
              <div className="col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-2">Scroll Speed: {announcement.speed}s</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Scroll Speed: {announcement.speed}s</label>
                 <input 
                   type="range" 
                   min="10" max="100" 
@@ -132,7 +132,7 @@ export default function AdminAnnouncements() {
           </div>
 
           {/* Preview */}
-          <div className="mt-8 border border-slate-200 rounded-lg overflow-hidden relative" style={previewStyle}>
+          <div className="mt-8 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden relative" style={previewStyle}>
             <div className="w-full overflow-hidden py-3">
               <div 
                 className="whitespace-nowrap"
@@ -147,7 +147,7 @@ export default function AdminAnnouncements() {
             `}</style>
           </div>
 
-          <div className="pt-4 flex justify-end border-t border-slate-100">
+          <div className="pt-4 flex justify-end border-t border-slate-100 dark:border-slate-800/50">
              <button 
                 onClick={handleSave}
                 disabled={saving}

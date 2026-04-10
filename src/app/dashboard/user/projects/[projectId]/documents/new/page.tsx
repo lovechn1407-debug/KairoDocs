@@ -134,15 +134,15 @@ export default function NewDocument() {
 
   return (
     <ProtectedRoute allowedRoles={["user"]}>
-      <div className="flex h-screen flex-col bg-slate-50 overflow-hidden">
+      <div className="flex h-screen flex-col bg-slate-50 dark:bg-[#0a0a0a] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4 shrink-0">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 py-4 shrink-0">
           <div className="flex items-center gap-4">
-            <Link href={`/dashboard/user/projects/${projectId}`} className="text-slate-400 hover:text-slate-600">
+            <Link href={`/dashboard/user/projects/${projectId}`} className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-300">
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div>
-              <p className="text-xs text-slate-500 font-medium">{project?.name}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{project?.name}</p>
               <h1 className="text-lg font-bold text-slate-800">Add New Document</h1>
             </div>
           </div>
@@ -164,13 +164,13 @@ export default function NewDocument() {
             {/* Setup Stage */}
             {(stage === "setup" || stage === "error") && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-6"
+                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 space-y-6"
               >
                 <h2 className="text-lg font-semibold text-slate-800">Configure Document</h2>
 
                 {/* Document Name */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Document Name *</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Document Name *</label>
                   <input
                     type="text"
                     value={documentName}
@@ -183,7 +183,7 @@ export default function NewDocument() {
                 <div className="grid grid-cols-2 gap-6">
                   {/* Template Select */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Select Format Template *</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Select Format Template *</label>
                     <select
                       className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-blue-500 focus:outline-none"
                       onChange={e => setSelectedTemplate(templates.find(t => t.id === e.target.value))}
@@ -198,24 +198,24 @@ export default function NewDocument() {
 
                   {/* File Upload */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Upload Source Document (PDF) *</label>
-                    <div className="relative border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:bg-slate-50 transition-colors cursor-pointer">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Upload Source Document (PDF) *</label>
+                    <div className="relative border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer">
                       <input
                         type="file"
                         accept=".pdf"
                         onChange={e => setFile(e.target.files?.[0] || null)}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       />
-                      <UploadCloud className="h-7 w-7 text-slate-400 mx-auto mb-1.5" />
-                      <span className="text-sm text-slate-500 block">
-                        {file ? <strong className="text-blue-700">{file.name}</strong> : "Click or drag PDF here"}
+                      <UploadCloud className="h-7 w-7 text-slate-400 dark:text-slate-500 mx-auto mb-1.5" />
+                      <span className="text-sm text-slate-500 dark:text-slate-400 block">
+                        {file ? <strong className="text-blue-700 dark:text-blue-400">{file.name}</strong> : "Click or drag PDF here"}
                       </span>
                     </div>
                   </div>
                 </div>
 
                 {stage === "error" && errorMsg && (
-                  <div className="p-4 bg-red-50 text-red-700 rounded-lg text-sm border border-red-200">
+                  <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-700 rounded-lg text-sm border border-red-200">
                     ⚠️ {errorMsg}
                   </div>
                 )}
@@ -236,15 +236,15 @@ export default function NewDocument() {
             {/* Processing Stage */}
             {(stage === "parsing" || stage === "analyzing") && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                className="bg-white rounded-2xl border border-slate-200 shadow-sm p-16 text-center"
+                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-16 text-center"
               >
-                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Cpu className="h-8 w-8 text-blue-600 animate-pulse" />
+                <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Cpu className="h-8 w-8 text-blue-600 dark:text-blue-400 animate-pulse" />
                 </div>
                 <h3 className="text-lg font-semibold text-slate-800">
                   {stage === "parsing" ? "📄 Reading your document..." : "🤖 AI is extracting data..."}
                 </h3>
-                <p className="text-slate-500 mt-2 text-sm">
+                <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">
                   {stage === "parsing" ? "Parsing PDF content" : "Groq LLaMA is analyzing and filling your template"}
                 </p>
               </motion.div>
@@ -255,17 +255,17 @@ export default function NewDocument() {
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                       <CheckCircle className="h-5 w-5 text-green-500" />
                       Review Generated Document
                     </h2>
-                    <p className="text-slate-500 text-sm mt-1">AI has filled in the template. Review, edit if needed, then submit.</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">AI has filled in the template. Review, edit if needed, then submit.</p>
                   </div>
-                  <button onClick={() => setStage("setup")} className="text-sm text-slate-400 hover:text-slate-700 underline">
+                  <button onClick={() => setStage("setup")} className="text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:text-slate-300 underline">
                     Start Over
                   </button>
                 </div>
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                   <JoditEditor
                     value={finalContent}
                     config={editorConfig}

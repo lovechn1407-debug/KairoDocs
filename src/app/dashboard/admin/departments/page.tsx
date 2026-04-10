@@ -83,24 +83,24 @@ export default function AdminDepartments() {
     <ProtectedRoute allowedRoles={["admin"]}>
       <div className="p-8 max-w-6xl mx-auto space-y-8">
         <header>
-          <h1 className="text-3xl font-bold text-slate-900">Department Management</h1>
-          <p className="text-slate-500 mt-1">Assign roles and invite Department Heads.</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Department Management</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Assign roles and invite Department Heads.</p>
         </header>
 
         {/* Generate Head Invite */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
           <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
             <LinkIcon className="h-5 w-5 text-purple-600" /> Generate Head Invite Link
           </h2>
 
           {departments.length === 0 ? (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
+            <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
               ⚠️ No departments configured yet. Go to <strong>Settings</strong> tab to add departments first.
             </div>
           ) : (
             <div className="flex gap-3 items-end">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-slate-600 mb-1">Select Department *</label>
+                <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Select Department *</label>
                 <select
                   value={selectedDept}
                   onChange={e => setSelectedDept(e.target.value)}
@@ -133,9 +133,9 @@ export default function AdminDepartments() {
               </div>
               <button
                 onClick={handleCopy}
-                className="shrink-0 flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg shadow-sm border border-purple-200 text-sm font-medium hover:bg-purple-50"
+                className="shrink-0 flex items-center gap-1.5 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg shadow-sm border border-purple-200 text-sm font-medium hover:bg-purple-50"
               >
-                {copied ? <><Check className="h-4 w-4 text-green-600" /> Copied!</> : <><LinkIcon className="h-4 w-4" /> Copy</>}
+                {copied ? <><Check className="h-4 w-4 text-green-600 dark:text-green-400" /> Copied!</> : <><LinkIcon className="h-4 w-4" /> Copy</>}
               </button>
             </div>
           )}
@@ -148,14 +148,14 @@ export default function AdminDepartments() {
             <h2 className="text-xl font-semibold flex items-center gap-2 mb-4">
               <Shield className="h-5 w-5 text-purple-600" /> Department Heads ({heads.length})
             </h2>
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
               {heads.length === 0 ? (
-                <div className="p-6 text-center text-slate-500 text-sm">No heads assigned. Use the invite link above.</div>
+                <div className="p-6 text-center text-slate-500 dark:text-slate-400 text-sm">No heads assigned. Use the invite link above.</div>
               ) : heads.map((h: any) => (
-                <div key={h.uid} className="flex justify-between items-center p-4 border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                <div key={h.uid} className="flex justify-between items-center p-4 border-b border-slate-100 dark:border-slate-800/50 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800">
                   <div>
-                    <p className="font-semibold text-slate-900 text-sm">{h.name}</p>
-                    <p className="text-xs text-slate-500">{h.email}</p>
+                    <p className="font-semibold text-slate-900 dark:text-slate-100 text-sm">{h.name}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{h.email}</p>
                     {h.departmentName && (
                       <span className="inline-flex items-center gap-1 text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full mt-1">
                         <Building2 className="h-3 w-3" /> {h.departmentName}
@@ -163,8 +163,8 @@ export default function AdminDepartments() {
                     )}
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => changeRole(h.uid, "user")} className="text-xs text-blue-600 px-2 py-1 rounded bg-blue-50 hover:bg-blue-100">Demote</button>
-                    <button onClick={() => deleteUserRecord(h.uid)} className="text-xs text-red-600 p-1.5 rounded bg-red-50 hover:bg-red-100"><XCircle className="h-4 w-4"/></button>
+                    <button onClick={() => changeRole(h.uid, "user")} className="text-xs text-blue-600 dark:text-blue-400 px-2 py-1 rounded bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:bg-blue-900/50">Demote</button>
+                    <button onClick={() => deleteUserRecord(h.uid)} className="text-xs text-red-600 dark:text-red-400 p-1.5 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100"><XCircle className="h-4 w-4"/></button>
                   </div>
                 </div>
               ))}
@@ -174,25 +174,25 @@ export default function AdminDepartments() {
           {/* Users */}
           <section>
             <h2 className="text-xl font-semibold flex items-center gap-2 mb-4">
-              <Users className="h-5 w-5 text-blue-600" /> Registered Users ({standardUsers.length})
+              <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Registered Users ({standardUsers.length})
             </h2>
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
               {standardUsers.length === 0 ? (
-                <div className="p-6 text-center text-slate-500 text-sm">No regular users yet.</div>
+                <div className="p-6 text-center text-slate-500 dark:text-slate-400 text-sm">No regular users yet.</div>
               ) : standardUsers.map((u: any) => (
-                <div key={u.uid} className="flex justify-between items-center p-4 border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                <div key={u.uid} className="flex justify-between items-center p-4 border-b border-slate-100 dark:border-slate-800/50 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800">
                   <div>
-                    <p className="font-semibold text-slate-900 text-sm">{u.name}</p>
-                    <p className="text-xs text-slate-500">{u.email}</p>
+                    <p className="font-semibold text-slate-900 dark:text-slate-100 text-sm">{u.name}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{u.email}</p>
                     {u.departmentName && (
-                      <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full mt-1">
+                      <span className="inline-flex items-center gap-1 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full mt-1">
                         <Building2 className="h-3 w-3" /> {u.departmentName}
                       </span>
                     )}
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => changeRole(u.uid, "head")} className="text-xs text-purple-700 font-medium bg-purple-50 px-2 py-1 rounded hover:bg-purple-100">→ Head</button>
-                    <button onClick={() => deleteUserRecord(u.uid)} className="text-xs text-red-600 p-1.5 rounded bg-red-50 hover:bg-red-100"><XCircle className="h-4 w-4"/></button>
+                    <button onClick={() => deleteUserRecord(u.uid)} className="text-xs text-red-600 dark:text-red-400 p-1.5 rounded bg-red-50 dark:bg-red-900/30 hover:bg-red-100"><XCircle className="h-4 w-4"/></button>
                   </div>
                 </div>
               ))}

@@ -90,29 +90,29 @@ function SignupForm() {
   };
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 p-4 py-12">
+    <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 dark:bg-[#0a0a0a] p-4 py-12">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl border border-slate-100"
+        className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 p-8 shadow-xl border border-slate-100 dark:border-slate-800/50"
       >
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             KairoDocs
           </h1>
-          <p className="mt-2 text-slate-500">Create a new account</p>
+          <p className="mt-2 text-slate-500 dark:text-slate-400">Create a new account</p>
         </div>
 
         {/* Invite Banner */}
         {inviteChecking ? (
-          <div className="mb-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-500 animate-pulse">
+          <div className="mb-4 rounded-lg bg-slate-50 dark:bg-[#0a0a0a] p-3 text-sm text-slate-500 dark:text-slate-400 animate-pulse">
             Verifying invitation...
           </div>
         ) : inviteInfo && (
           <div className={`mb-4 rounded-lg p-3 text-sm border flex items-center gap-2 ${
             inviteRole === "head"
               ? "bg-purple-50 text-purple-800 border-purple-200"
-              : "bg-blue-50 text-blue-800 border-blue-200"
+              : "bg-blue-50 dark:bg-blue-900/30 text-blue-800 border-blue-200"
           }`}>
             {inviteRole === "head"
               ? <Shield className="h-4 w-4 shrink-0" />
@@ -126,14 +126,14 @@ function SignupForm() {
         )}
 
         {error && (
-          <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+          <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-900/30 p-3 text-sm text-red-600 dark:text-red-400">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSignup} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Full Name</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</label>
             <input
               type="text"
               required
@@ -145,7 +145,7 @@ function SignupForm() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Phone Number</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Phone Number</label>
             <input
               type="tel"
               required
@@ -157,7 +157,7 @@ function SignupForm() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Email Address</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Email Address</label>
             <input
               type="email"
               required
@@ -169,7 +169,7 @@ function SignupForm() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Password</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
             <input
               type="password"
               required
@@ -190,9 +190,9 @@ function SignupForm() {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-slate-600">
+        <div className="mt-6 text-center text-sm text-slate-600 dark:text-slate-300">
           Already have an account?{" "}
-          <Link href="/login" className="font-semibold text-blue-600 hover:text-blue-500">
+          <Link href="/login" className="font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-500">
             Sign in
           </Link>
         </div>

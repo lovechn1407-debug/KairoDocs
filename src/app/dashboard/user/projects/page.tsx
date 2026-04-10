@@ -66,8 +66,8 @@ export default function UserProjects() {
         {/* Header */}
         <header className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">My Projects</h1>
-            <p className="text-slate-500 mt-1">Create and manage your incubation projects.</p>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">My Projects</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">Create and manage your incubation projects.</p>
           </div>
           <button
             onClick={() => setShowCreate(true)}
@@ -86,12 +86,12 @@ export default function UserProjects() {
             >
               <motion.div
                 initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95 }}
-                className="bg-white rounded-2xl p-8 w-full max-w-lg shadow-2xl"
+                className="bg-white dark:bg-slate-900 rounded-2xl p-8 w-full max-w-lg shadow-2xl"
               >
                 <h2 className="text-2xl font-bold text-slate-800 mb-6">Create New Project</h2>
                 <form onSubmit={handleCreate} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Project Name *</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Project Name *</label>
                     <input
                       type="text"
                       required
@@ -102,7 +102,7 @@ export default function UserProjects() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
                     <textarea
                       rows={3}
                       value={form.description}
@@ -115,7 +115,7 @@ export default function UserProjects() {
                     <button
                       type="button"
                       onClick={() => { setShowCreate(false); setForm({ name: "", description: "" }); }}
-                      className="flex-1 border border-slate-300 text-slate-700 py-2.5 rounded-lg font-medium hover:bg-slate-50"
+                      className="flex-1 border border-slate-300 text-slate-700 dark:text-slate-300 py-2.5 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-800"
                     >
                       Cancel
                     </button>
@@ -139,12 +139,12 @@ export default function UserProjects() {
             {[1,2,3].map(i => <div key={i} className="h-24 bg-slate-100 animate-pulse rounded-xl" />)}
           </div>
         ) : projects.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-200 p-16 text-center shadow-sm">
-            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Folder className="h-8 w-8 text-blue-600" />
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-16 text-center shadow-sm">
+            <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Folder className="h-8 w-8 text-blue-600 dark:text-blue-400" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-900">No Projects Yet</h3>
-            <p className="text-slate-500 mt-2 mb-6">Create your first incubation project to start uploading documents.</p>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">No Projects Yet</h3>
+            <p className="text-slate-500 dark:text-slate-400 mt-2 mb-6">Create your first incubation project to start uploading documents.</p>
             <button
               onClick={() => setShowCreate(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium"
@@ -162,20 +162,20 @@ export default function UserProjects() {
                 transition={{ delay: idx * 0.05 }}
               >
                 <Link href={`/dashboard/user/projects/${project.id}`}>
-                  <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group">
+                  <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center shrink-0">
-                          <Folder className="h-6 w-6 text-blue-600" />
+                        <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center shrink-0">
+                          <Folder className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-700 transition-colors">
+                          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-700 dark:text-blue-400 transition-colors">
                             {project.name}
                           </h3>
                           {project.description && (
-                            <p className="text-slate-500 text-sm mt-1">{project.description}</p>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{project.description}</p>
                           )}
-                          <p className="text-xs text-slate-400 mt-2">
+                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
                             Created {new Date(project.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                           </p>
                         </div>
@@ -184,7 +184,7 @@ export default function UserProjects() {
                         <span className="text-xs font-medium bg-green-100 text-green-700 px-3 py-1 rounded-full">
                           {project.status}
                         </span>
-                        <ArrowRight className="h-5 w-5 text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
+                        <ArrowRight className="h-5 w-5 text-slate-300 dark:text-slate-600 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
                       </div>
                     </div>
                   </div>

@@ -75,7 +75,7 @@ export default function ProjectDetail() {
       <div className="p-8 max-w-6xl mx-auto space-y-8">
         {/* Back + Header */}
         <div>
-          <Link href="/dashboard/user/projects" className="flex items-center gap-2 text-slate-500 hover:text-slate-800 text-sm mb-6 w-fit">
+          <Link href="/dashboard/user/projects" className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-800 text-sm mb-6 w-fit">
             <ArrowLeft className="h-4 w-4" /> Back to Projects
           </Link>
 
@@ -84,13 +84,13 @@ export default function ProjectDetail() {
           ) : project ? (
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center">
-                  <Folder className="h-7 w-7 text-blue-600" />
+                <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center">
+                  <Folder className="h-7 w-7 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-slate-900">{project.name}</h1>
+                  <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">{project.name}</h1>
                   {project.description && (
-                    <p className="text-slate-500 mt-1">{project.description}</p>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1">{project.description}</p>
                   )}
                 </div>
               </div>
@@ -116,10 +116,10 @@ export default function ProjectDetail() {
               <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
-                className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm"
+                className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm"
               >
-                <p className="text-sm text-slate-500">{stat.label}</p>
-                <p className="text-3xl font-bold text-slate-900 mt-1">{stat.value}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{stat.label}</p>
+                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-1">{stat.value}</p>
               </motion.div>
             ))}
           </div>
@@ -127,18 +127,18 @@ export default function ProjectDetail() {
 
         {/* Documents List */}
         <section>
-          <h2 className="text-xl font-semibold text-slate-900 mb-4">Documents</h2>
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Documents</h2>
           {loading ? (
             <div className="space-y-3">
               {[1,2].map(i => <div key={i} className="h-20 bg-slate-100 animate-pulse rounded-xl" />)}
             </div>
           ) : documents.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
-              <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FileText className="h-7 w-7 text-slate-400" />
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center shadow-sm">
+              <div className="w-14 h-14 bg-slate-50 dark:bg-[#0a0a0a] rounded-full flex items-center justify-center mx-auto mb-4">
+                <FileText className="h-7 w-7 text-slate-400 dark:text-slate-500" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-700">No Documents Yet</h3>
-              <p className="text-slate-400 mt-2 mb-6 text-sm">Upload your first document to this project for AI processing.</p>
+              <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">No Documents Yet</h3>
+              <p className="text-slate-400 dark:text-slate-500 mt-2 mb-6 text-sm">Upload your first document to this project for AI processing.</p>
               <Link href={`/dashboard/user/projects/${projectId}/documents/new`}>
                 <button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium text-sm">
                   Add First Document
@@ -146,20 +146,20 @@ export default function ProjectDetail() {
               </Link>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
               {documents.map((doc, idx) => (
                 <motion.div
                   key={doc.id}
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.05 }}
-                  className="flex items-center justify-between p-5 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
+                  className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800/50 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center">
                       <FileText className="h-5 w-5 text-indigo-600" />
                     </div>
                     <div>
-                      <p className="font-semibold text-slate-900">{doc.documentName || doc.templateName}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="font-semibold text-slate-900 dark:text-slate-100">{doc.documentName || doc.templateName}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                         Template: {doc.templateName} · {new Date(doc.createdAt).toLocaleDateString("en-IN")}
                       </p>
                     </div>
@@ -167,7 +167,7 @@ export default function ProjectDetail() {
                   <div className="flex items-center gap-4">
                     {getStatusBadge(doc.status)}
                     <Link href={`/dashboard/user/projects/${projectId}/documents/${doc.id}`}>
-                      <button className="text-sm text-blue-600 font-medium hover:underline">View</button>
+                      <button className="text-sm text-blue-600 dark:text-blue-400 font-medium hover:underline">View</button>
                     </Link>
                   </div>
                 </motion.div>

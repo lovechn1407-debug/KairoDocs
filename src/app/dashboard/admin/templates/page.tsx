@@ -79,11 +79,11 @@ const VARIABLE_GROUPS = [
 
 // Color maps for Tailwind (must be hardcoded to avoid purging)
 const colorMap: Record<string, { bg: string; border: string; text: string; pill: string }> = {
-  blue:   { bg: "bg-blue-50",   border: "border-blue-200",   text: "text-blue-700",   pill: "bg-blue-100 text-blue-700" },
+  blue:   { bg: "bg-blue-50 dark:bg-blue-900/30",   border: "border-blue-200",   text: "text-blue-700 dark:text-blue-400",   pill: "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400" },
   indigo: { bg: "bg-indigo-50", border: "border-indigo-200", text: "text-indigo-700", pill: "bg-indigo-100 text-indigo-700" },
-  green:  { bg: "bg-green-50",  border: "border-green-200",  text: "text-green-700",  pill: "bg-green-100 text-green-700" },
+  green:  { bg: "bg-green-50 dark:bg-green-900/30",  border: "border-green-200",  text: "text-green-700",  pill: "bg-green-100 text-green-700" },
   purple: { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700", pill: "bg-purple-100 text-purple-700" },
-  amber:  { bg: "bg-amber-50",  border: "border-amber-200",  text: "text-amber-700",  pill: "bg-amber-100 text-amber-700" },
+  amber:  { bg: "bg-amber-50 dark:bg-amber-900/30",  border: "border-amber-200",  text: "text-amber-700",  pill: "bg-amber-100 text-amber-700" },
 };
 
 export default function TemplateEngine() {
@@ -226,21 +226,21 @@ export default function TemplateEngine() {
       <div className="flex h-screen flex-col bg-slate-100 overflow-hidden">
 
         {/* ─── Topbar ───────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3 shrink-0 shadow-sm z-10">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 py-3 shrink-0 shadow-sm z-10">
           <div className="flex items-center gap-4">
-            <Link href="/dashboard/admin" className="text-slate-400 hover:text-slate-600 transition">
+            <Link href="/dashboard/admin" className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-300 transition">
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
               <button
                 onClick={() => setActiveTab("editor")}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${activeTab === "editor" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${activeTab === "editor" ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300"}`}
               >
                 <span className="flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Editor</span>
               </button>
               <button
                 onClick={() => setActiveTab("templates")}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${activeTab === "templates" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${activeTab === "templates" ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300"}`}
               >
                 <span className="flex items-center gap-1.5"><Eye className="h-3.5 w-3.5" /> Saved Templates ({savedTemplates.length})</span>
               </button>
@@ -272,28 +272,28 @@ export default function TemplateEngine() {
             <div className="max-w-4xl mx-auto">
               <h2 className="text-2xl font-bold text-slate-800 mb-6">Saved Templates</h2>
               {savedTemplates.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-slate-200 p-16 text-center">
-                  <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-500">No templates saved yet. Build one in the Editor tab!</p>
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-16 text-center">
+                  <FileText className="h-12 w-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                  <p className="text-slate-500 dark:text-slate-400">No templates saved yet. Build one in the Editor tab!</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {savedTemplates.map(t => (
-                    <div key={t.id} className="bg-white rounded-xl border border-slate-200 p-5 flex items-center justify-between hover:shadow-sm transition">
+                    <div key={t.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 flex items-center justify-between hover:shadow-sm transition">
                       <div>
-                        <h3 className="font-bold text-slate-900">{t.name}</h3>
-                        <p className="text-xs text-slate-400 mt-0.5">Created {new Date(t.createdAt).toLocaleDateString()}</p>
+                        <h3 className="font-bold text-slate-900 dark:text-slate-100">{t.name}</h3>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Created {new Date(t.createdAt).toLocaleDateString()}</p>
                       </div>
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleLoadTemplate(t)}
-                          className="text-sm text-blue-600 font-medium hover:underline px-3 py-1 rounded-lg bg-blue-50 hover:bg-blue-100"
+                          className="text-sm text-blue-600 dark:text-blue-400 font-medium hover:underline px-3 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:bg-blue-900/50"
                         >
                           Edit / Duplicate
                         </button>
                         <button
                           onClick={() => handleDeleteTemplate(t.id)}
-                          className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                          className="p-2 text-red-400 hover:text-red-600 dark:text-red-400 hover:bg-red-50 dark:bg-red-900/30 rounded-lg"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -312,7 +312,7 @@ export default function TemplateEngine() {
 
             {/* Editor Area */}
             <div className="flex-1 overflow-y-auto p-6 bg-slate-100">
-              <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white shadow-md overflow-hidden">
+              <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-md overflow-hidden">
                 <JoditEditor
                   ref={editorRef}
                   value={content}
@@ -324,10 +324,10 @@ export default function TemplateEngine() {
             </div>
 
             {/* ─── Variables Sidebar ──────────────────────────────── */}
-            <aside className="w-80 flex-shrink-0 border-l border-slate-200 bg-white flex flex-col overflow-hidden">
-              <div className="px-5 pt-5 pb-3 border-b border-slate-100">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Variables & Tables</h2>
-                <p className="mt-1 text-xs text-slate-400 leading-relaxed">
+            <aside className="w-80 flex-shrink-0 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col overflow-hidden">
+              <div className="px-5 pt-5 pb-3 border-b border-slate-100 dark:border-slate-800/50">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Variables & Tables</h2>
+                <p className="mt-1 text-xs text-slate-400 dark:text-slate-500 leading-relaxed">
                   <strong>Drag</strong> or <strong>click</strong> to insert at cursor. AI extracts real values from uploaded documents.
                 </p>
               </div>
@@ -339,17 +339,17 @@ export default function TemplateEngine() {
                   const c = colorMap[group.color] || colorMap.blue;
                   const isOpen = openGroups[group.id];
                   return (
-                    <div key={group.id} className="rounded-xl border border-slate-100 overflow-hidden">
+                    <div key={group.id} className="rounded-xl border border-slate-100 dark:border-slate-800/50 overflow-hidden">
                       <button
                         onClick={() => setOpenGroups(p => ({ ...p, [group.id]: !p[group.id] }))}
-                        className="w-full flex items-center justify-between px-3 py-2.5 bg-slate-50 hover:bg-slate-100 transition"
+                        className="w-full flex items-center justify-between px-3 py-2.5 bg-slate-50 dark:bg-[#0a0a0a] hover:bg-slate-100 transition"
                       >
-                        <span className="text-sm font-semibold text-slate-700">{group.label}</span>
-                        {isOpen ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{group.label}</span>
+                        {isOpen ? <ChevronDown className="h-4 w-4 text-slate-400 dark:text-slate-500" /> : <ChevronRight className="h-4 w-4 text-slate-400 dark:text-slate-500" />}
                       </button>
 
                       {isOpen && (
-                        <div className="p-2 space-y-1.5 bg-white">
+                        <div className="p-2 space-y-1.5 bg-white dark:bg-slate-900">
                           {group.vars.map(v => (
                             <div
                               key={v.tag}
@@ -360,7 +360,7 @@ export default function TemplateEngine() {
                             >
                               <GripVertical className={`h-3.5 w-3.5 ${c.text} flex-shrink-0 opacity-60`} />
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold text-slate-700 truncate">{v.name}</p>
+                                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">{v.name}</p>
                                 <code className={`mt-0.5 block text-[10px] font-mono ${c.pill} px-1.5 py-0.5 rounded w-fit truncate max-w-full`}>
                                   {v.tag}
                                 </code>
@@ -374,12 +374,12 @@ export default function TemplateEngine() {
                 })}
 
                 {/* Custom Variable */}
-                <div className="rounded-xl border border-slate-200 overflow-hidden">
-                  <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-50">
-                    <Type className="h-4 w-4 text-slate-500" />
-                    <span className="text-sm font-semibold text-slate-700">Custom Variable</span>
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                  <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-50 dark:bg-[#0a0a0a]">
+                    <Type className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Custom Variable</span>
                   </div>
-                  <div className="p-3 bg-white flex gap-2">
+                  <div className="p-3 bg-white dark:bg-slate-900 flex gap-2">
                     <input
                       type="text"
                       placeholder="Variable name..."
@@ -399,12 +399,12 @@ export default function TemplateEngine() {
 
                 {/* Custom Table */}
                 <div className="rounded-xl border border-amber-200 overflow-hidden">
-                  <div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50">
-                    <Table2 className="h-4 w-4 text-amber-600" />
+                  <div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50 dark:bg-amber-900/30">
+                    <Table2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                     <span className="text-sm font-semibold text-amber-800">Custom Dynamic Table</span>
                   </div>
-                  <div className="p-3 bg-white space-y-2">
-                    <p className="text-[10px] text-slate-400 leading-relaxed">
+                  <div className="p-3 bg-white dark:bg-slate-900 space-y-2">
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-relaxed">
                       AI will auto-detect all rows & columns from the uploaded document — even if rows vary per document!
                     </p>
                     <div className="flex gap-2">
@@ -427,12 +427,12 @@ export default function TemplateEngine() {
                 </div>
 
                 {/* Image hint */}
-                <div className="rounded-xl border border-slate-200 p-3 bg-slate-50 space-y-1">
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 bg-slate-50 dark:bg-[#0a0a0a] space-y-1">
                   <div className="flex items-center gap-2">
-                    <ImageIcon className="h-4 w-4 text-slate-500" />
-                    <span className="text-xs font-semibold text-slate-600">Images</span>
+                    <ImageIcon className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Images</span>
                   </div>
-                  <p className="text-[10px] text-slate-400 leading-relaxed">
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-relaxed">
                     Use the <strong>Image</strong> button in the toolbar above to insert a logo or signature. You can upload from your PC or paste a URL.
                   </p>
                 </div>

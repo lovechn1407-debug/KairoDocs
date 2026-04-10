@@ -63,24 +63,24 @@ export default function AdminSettings() {
     <ProtectedRoute allowedRoles={["admin"]}>
       <div className="p-8 max-w-4xl mx-auto space-y-8">
         <header>
-          <h1 className="text-3xl font-bold text-slate-900">System Settings</h1>
-          <p className="text-slate-500 mt-1">Configure departments and global platform settings.</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">System Settings</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Configure departments and global platform settings.</p>
         </header>
 
         {/* Department Manager */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="flex items-center gap-3 p-6 border-b border-slate-100">
-            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-blue-600" />
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 p-6 border-b border-slate-100 dark:border-slate-800/50">
+            <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+              <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Departments</h2>
-              <p className="text-sm text-slate-500">These will appear as options when assigning roles via invite links.</p>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Departments</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">These will appear as options when assigning roles via invite links.</p>
             </div>
           </div>
 
           {/* Add Form */}
-          <form onSubmit={handleAddDept} className="p-6 border-b border-slate-100 bg-slate-50">
+          <form onSubmit={handleAddDept} className="p-6 border-b border-slate-100 dark:border-slate-800/50 bg-slate-50 dark:bg-[#0a0a0a]">
             <div className="flex gap-3">
               <div className="flex-1">
                 <input
@@ -118,7 +118,7 @@ export default function AdminSettings() {
               {[1,2,3].map(i => <div key={i} className="h-12 bg-slate-100 animate-pulse rounded-lg" />)}
             </div>
           ) : departments.length === 0 ? (
-            <div className="p-12 text-center text-slate-400 text-sm">
+            <div className="p-12 text-center text-slate-400 dark:text-slate-500 text-sm">
               No departments added yet. Add your first one above.
             </div>
           ) : (
@@ -127,20 +127,20 @@ export default function AdminSettings() {
                 <motion.div
                   key={dept.id}
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  className="flex items-center justify-between p-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 group"
+                  className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800/50 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-sm">
                       {dept.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p className="font-semibold text-slate-900 text-sm">{dept.name}</p>
-                      {dept.description && <p className="text-xs text-slate-400">{dept.description}</p>}
+                      <p className="font-semibold text-slate-900 dark:text-slate-100 text-sm">{dept.name}</p>
+                      {dept.description && <p className="text-xs text-slate-400 dark:text-slate-500">{dept.description}</p>}
                     </div>
                   </div>
                   <button
                     onClick={() => handleDelete(dept.id)}
-                    className="text-slate-300 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                    className="text-slate-300 dark:text-slate-600 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 dark:bg-red-900/30 opacity-0 group-hover:opacity-100 transition-all"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

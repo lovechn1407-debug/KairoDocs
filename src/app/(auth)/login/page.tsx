@@ -45,28 +45,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-slate-50 p-4">
+    <div className="flex h-screen w-full items-center justify-center bg-slate-50 dark:bg-[#0a0a0a] p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl border border-slate-100"
+        className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 p-8 shadow-xl border border-slate-100 dark:border-slate-800/50"
       >
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             KairoDocs
           </h1>
-          <p className="mt-2 text-slate-500">Sign in to your account</p>
+          <p className="mt-2 text-slate-500 dark:text-slate-400">Sign in to your account</p>
         </div>
 
         {error && (
-          <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+          <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-900/30 p-3 text-sm text-red-600 dark:text-red-400">
             {error}
           </div>
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Email Address</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Email Address</label>
             <input
               type="email"
               required
@@ -78,7 +78,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Password</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
             <input
               type="password"
               required
@@ -98,9 +98,9 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-slate-600">
+        <div className="mt-6 text-center text-sm text-slate-600 dark:text-slate-300">
           Don't have an account?{" "}
-          <Link href="/signup" className="font-semibold text-blue-600 hover:text-blue-500">
+          <Link href="/signup" className="font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-500">
             Sign up
           </Link>
         </div>
