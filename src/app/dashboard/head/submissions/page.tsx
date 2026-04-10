@@ -4,14 +4,15 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { useEffect, useState, useRef } from "react";
 import { database } from "@/lib/firebase";
 import { ref, get, update } from "firebase/database";
-import { CheckCircle, XCircle, FileText, X, Edit3, History, ChevronDown, ChevronRight } from "lucide-react";
+import { CheckCircle, XCircle, FileText, X, Edit3, History, ChevronDown, ChevronRight, ChevronUp, Folder } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 
 const JoditEditor = dynamic(() => import("jodit-react"), { ssr: false });
 
 export default function HeadSubmissions() {
-  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [groupedProjects, setGroupedProjects] = useState<any[]>([]);
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [selectedSub, setSelectedSub] = useState<any>(null);
   const [acting, setActing] = useState(false);
@@ -23,12 +24,41 @@ export default function HeadSubmissions() {
     setLoading(true);
     const snap = await get(ref(database, "submissions"));
     if (snap.exists()) {
-      const sorted = Object.values(snap.val()).sort((a: any, b: any) => 
+      const rawSubs = Object.values(snap.val()) as any[];
+      
+      const projectMap: Record<string, any> = {};
+      rawSubs.forEach(sub => {
+        if (!projectMap[sub.projectId]) {
+          projectMap[sub.projectId] = {
+            id: sub.projectId,
+            projectName: sub.projectName,
+            userEmail: sub.userEmail,
+            totalDocs: 0,
+            approvedDocs: 0,
+            createdAt: sub.createdAt,
+            documents: []
+          };
+        }
+        projectMap[sub.projectId].documents.push(sub);
+        projectMap[sub.projectId].totalDocs += 1;
+        if (sub.status === "Approved") {
+           projectMap[sub.projectId].approvedDocs += 1;
+        }
+      });
+
+      const sortedProjects = Object.values(projectMap).sort((a: any, b: any) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
-      setSubmissions(sorted);
+      
+      sortedProjects.forEach(proj => {
+        proj.documents.sort((a: any, b: any) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      });
+
+      setGroupedProjects(sortedProjects);
     } else {
-      setSubmissions([]);
+      setGroupedProjects([]);
     }
     setLoading(false);
   };
@@ -36,6 +66,13 @@ export default function HeadSubmissions() {
   useEffect(() => {
     fetchSubs();
   }, []);
+
+  const toggleProject = (pid: string) => {
+    const next = new Set(expandedProjects);
+    if (next.has(pid)) next.delete(pid);
+    else next.add(pid);
+    setExpandedProjects(next);
+  };
 
   const handleAction = async (subId: string, newStatus: string, finalFeedback?: string) => {
     setActing(true);
@@ -79,51 +116,107 @@ export default function HeadSubmissions() {
       <div className="p-8 max-w-6xl mx-auto space-y-8 flex-1">
         <header>
           <h1 className="text-3xl font-bold text-slate-900">Department Submissions</h1>
-          <p className="text-slate-500 mt-1">Review, approve, or reject user incubation documents.</p>
+          <p className="text-slate-500 mt-1">Review, approve, or reject user incubation documents organized by project.</p>
         </header>
 
         {loading ? (
           <div className="animate-pulse space-y-4">
-             <div className="h-16 bg-slate-200 rounded-xl w-full"></div>
-             <div className="h-16 bg-slate-200 rounded-xl w-full"></div>
+             <div className="h-20 bg-slate-200 rounded-xl w-full"></div>
+             <div className="h-20 bg-slate-200 rounded-xl w-full"></div>
           </div>
-        ) : submissions.length === 0 ? (
-          <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-            <p className="text-slate-500">No submissions found in this department.</p>
+        ) : groupedProjects.length === 0 ? (
+          <div className="bg-white rounded-xl border border-slate-200 p-12 text-center shadow-sm">
+            <p className="text-slate-500 text-lg">No submissions found in this department.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-sm text-slate-600">
-                  <th className="p-4 font-semibold">Project Name</th>
-                  <th className="p-4 font-semibold">User</th>
-                  <th className="p-4 font-semibold">Template</th>
-                  <th className="p-4 font-semibold">Date Submitted</th>
-                  <th className="p-4 font-semibold">Status</th>
-                  <th className="p-4 font-semibold text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {submissions.map((sub) => (
-                  <tr key={sub.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="p-4 font-medium text-slate-900">{sub.projectName}</td>
-                    <td className="p-4 text-slate-600 text-sm">{sub.userEmail}</td>
-                    <td className="p-4 text-slate-600 text-sm">{sub.templateName}</td>
-                    <td className="p-4 text-slate-500 text-sm">{new Date(sub.createdAt).toLocaleDateString()}</td>
-                    <td className="p-4">{getBadge(sub.status)}</td>
-                    <td className="p-4 text-right">
-                      <button 
-                        onClick={() => setSelectedSub(sub)}
-                        className="text-blue-600 font-medium text-sm hover:underline"
-                      >
-                        Review
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="space-y-4">
+            {groupedProjects.map((proj) => {
+              const isExpanded = expandedProjects.has(proj.id);
+              return (
+                <div key={proj.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden transition-all">
+                  
+                  {/* Accordion Header */}
+                  <div 
+                    onClick={() => toggleProject(proj.id)}
+                    className="p-5 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition"
+                  >
+                    <div className="flex items-center gap-4">
+                       <div className="bg-blue-50 p-2 rounded-lg text-blue-600">
+                         <Folder className="h-7 w-7" />
+                       </div>
+                       <div>
+                         <h3 className="font-semibold text-slate-900 text-lg">{proj.projectName}</h3>
+                         <p className="text-sm text-slate-500">Submitted by: <span className="font-medium text-slate-700">{proj.userEmail}</span></p>
+                       </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-8">
+                       <div className="text-center">
+                         <p className="text-2xl font-bold text-slate-700">{proj.totalDocs}</p>
+                         <p className="text-xs text-slate-400 font-bold uppercase tracking-wide">Total Docs</p>
+                       </div>
+                       <div className="text-center px-4 border-l border-slate-200">
+                         <p className="text-2xl font-bold text-green-600">{proj.approvedDocs}</p>
+                         <p className="text-xs text-green-600 font-bold uppercase tracking-wide opacity-80">Approved</p>
+                       </div>
+                       <div className="ml-2 text-slate-400">
+                         {isExpanded ? <ChevronUp className="h-6 w-6"/> : <ChevronDown className="h-6 w-6"/>}
+                       </div>
+                    </div>
+                  </div>
+
+                  {/* Expanded Table */}
+                  <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div 
+                      key="content"
+                      initial="collapsed"
+                      animate="open"
+                      exit="collapsed"
+                      variants={{
+                        open: { opacity: 1, height: "auto" },
+                        collapsed: { opacity: 0, height: 0 }
+                      }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className="overflow-hidden bg-slate-50 border-t border-slate-100"
+                    >
+                      <div className="p-4">
+                        <table className="w-full text-left bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                          <thead>
+                            <tr className="bg-slate-100 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider">
+                              <th className="p-3 font-semibold">Document Name</th>
+                              <th className="p-3 font-semibold">Template</th>
+                              <th className="p-3 font-semibold">Date Submitted</th>
+                              <th className="p-3 font-semibold">Status</th>
+                              <th className="p-3 font-semibold text-right">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {proj.documents.map((sub: any, idx: number) => (
+                              <tr key={sub.id} className={`${idx !== proj.documents.length - 1 ? "border-b border-slate-100" : ""} hover:bg-slate-50 transition`}>
+                                <td className="p-3 font-medium text-slate-900">{sub.documentName || `Document ${idx+1}`}</td>
+                                <td className="p-3 text-slate-600 text-sm">{sub.templateName}</td>
+                                <td className="p-3 text-slate-500 text-sm">{new Date(sub.createdAt).toLocaleDateString()}</td>
+                                <td className="p-3">{getBadge(sub.status)}</td>
+                                <td className="p-3 text-right">
+                                  <button 
+                                    onClick={() => setSelectedSub(sub)}
+                                    className="bg-white border border-slate-300 text-slate-700 font-medium text-sm px-4 py-1.5 rounded-lg hover:bg-slate-50 focus:ring-2 focus:ring-slate-200 transition"
+                                  >
+                                    Review
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </motion.div>
+                  )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -138,22 +231,25 @@ export default function HeadSubmissions() {
                 initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
                 className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl"
               >
-                <div className="flex justify-between items-center p-6 border-b border-slate-200">
+                <div className="flex justify-between items-center p-6 border-b border-slate-200 bg-white rounded-t-2xl">
                   <div>
-                    <h2 className="text-xl font-bold text-slate-900">Reviewing: {selectedSub.projectName}</h2>
-                    <p className="text-sm text-slate-500">Submitted by {selectedSub.userEmail} on {new Date(selectedSub.createdAt).toLocaleString()}</p>
+                    <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                       <FileText className="h-5 w-5 text-indigo-500" />
+                       Reviewing: {selectedSub.documentName || selectedSub.templateName}
+                    </h2>
+                    <p className="text-sm text-slate-500 mt-0.5">Project: {selectedSub.projectName} • Submitted on {new Date(selectedSub.createdAt).toLocaleString()}</p>
                   </div>
                   <button onClick={() => {
                     setSelectedSub(null);
                     setShowFeedbackInput(false);
                     setFeedbackText("");
-                  }} className="text-slate-400 hover:text-slate-700 bg-slate-100 p-2 rounded-full">
+                  }} className="text-slate-400 hover:text-slate-700 bg-slate-100 p-2 rounded-full transition">
                     <X className="h-5 w-5" />
                   </button>
                 </div>
                 
                 <div className="flex-1 overflow-auto p-6 bg-slate-50 space-y-6">
-                   <div className="rounded-xl border border-slate-200 bg-white overflow-hidden pointer-events-none">
+                   <div className="rounded-xl border border-slate-200 bg-white overflow-hidden pointer-events-none shadow-sm min-h-[500px]">
                      {/* Readonly editor to see the exact document output safely */}
                      <JoditEditor
                         value={selectedSub.documentContent}
@@ -217,20 +313,20 @@ export default function HeadSubmissions() {
                         onChange={e => setFeedbackText(e.target.value)}
                         placeholder="Please modify the financial terms correctly..."
                         rows={3}
-                        className="w-full rounded-lg border border-slate-300 px-4 py-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full rounded-lg border border-slate-300 px-4 py-3 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
                       />
                       <div className="flex justify-end gap-3">
                         <button 
                           disabled={acting}
                           onClick={() => { setShowFeedbackInput(false); setFeedbackText(""); }}
-                          className="px-5 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg"
+                          className="px-5 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition"
                         >
                           Cancel
                         </button>
                         <button 
                           disabled={acting || !feedbackText.trim()}
                           onClick={() => handleAction(selectedSub.id, "Needs Edit", feedbackText.trim())}
-                          className="flex items-center gap-2 px-6 py-2 rounded-lg font-medium text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50"
+                          className="flex items-center gap-2 px-6 py-2 rounded-lg font-medium text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 transition"
                         >
                            Send Feedback
                         </button>
@@ -242,9 +338,9 @@ export default function HeadSubmissions() {
                         <button 
                           disabled={acting}
                           onClick={() => handleAction(selectedSub.id, "Rejected", "")}
-                          className="flex items-center gap-2 px-6 py-2 rounded-lg font-medium text-red-700 bg-red-50 hover:bg-red-100 disabled:opacity-50"
+                          className="flex items-center gap-2 px-6 py-2 rounded-lg font-medium text-red-700 bg-red-50 hover:bg-red-100 disabled:opacity-50 transition"
                         >
-                          <XCircle className="h-5 w-5"/> Reject Document
+                          <XCircle className="h-5 w-5"/> Reject
                         </button>
                       )}
                       
@@ -252,7 +348,7 @@ export default function HeadSubmissions() {
                         <button 
                           disabled={acting}
                           onClick={() => setShowFeedbackInput(true)}
-                          className="flex items-center gap-2 px-6 py-2 rounded-lg font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 disabled:opacity-50"
+                          className="flex items-center gap-2 px-6 py-2 rounded-lg font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 disabled:opacity-50 transition"
                         >
                           <Edit3 className="h-5 w-5"/> Suggest Re-edit
                         </button>
@@ -262,9 +358,9 @@ export default function HeadSubmissions() {
                         <button 
                           disabled={acting}
                           onClick={() => handleAction(selectedSub.id, "Approved", "")}
-                          className="flex items-center gap-2 px-6 py-2 rounded-lg font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
+                          className="flex items-center gap-2 px-6 py-2 rounded-lg font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition shadow-sm"
                         >
-                          <CheckCircle className="h-5 w-5"/> Approve Document
+                          <CheckCircle className="h-5 w-5"/> Approve
                         </button>
                       )}
                     </div>
