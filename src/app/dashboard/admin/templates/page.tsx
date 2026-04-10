@@ -3,7 +3,7 @@
 import ProtectedRoute from "@/components/ProtectedRoute";
 import React, { useRef, useState, useMemo, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { Save, ArrowLeft, GripVertical, Plus, Table2, Type, Image as ImageIcon, Hash, Trash2, ChevronDown, ChevronRight, FileText, Eye } from "lucide-react";
+import { Save, ArrowLeft, GripVertical, Plus, Table2, Type, Image as ImageIcon, Hash, Trash2, ChevronDown, ChevronRight, FileText, Eye, Database } from "lucide-react";
 import Link from "next/link";
 import { database } from "@/lib/firebase";
 import { ref, push, set, get, remove } from "firebase/database";
@@ -93,10 +93,16 @@ export default function TemplateEngine() {
   const [saving, setSaving] = useState(false);
   const [savedTemplates, setSavedTemplates] = useState<any[]>([]);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ identity: true, tables: true });
-  const [activeTab, setActiveTab] = useState<"editor" | "templates">("editor");
+  const [activeTab, setActiveTab] = useState<"editor" | "templates" | "rag">("editor");
   const [customVarName, setCustomVarName] = useState("");
   const [customTableName, setCustomTableName] = useState("");
-  const [previewMode, setPreviewMode] = useState(false);
+  
+  // RAG Upload States
+  const [ragType, setRagType] = useState("template");
+  const [ragTitle, setRagTitle] = useState("");
+  const [ragText, setRagText] = useState("");
+  const [isVectorizing, setIsVectorizing] = useState(false);
+  const [vectorStatus, setVectorStatus] = useState("");
 
   useEffect(() => {
     get(ref(database, "templates")).then(snap => {
@@ -221,6 +227,30 @@ export default function TemplateEngine() {
     setCustomTableName("");
   };
 
+  const handleVectorize = async () => {
+    if (!ragTitle.trim() || !ragText.trim()) return alert("Title and Text are required.");
+    setIsVectorizing(true);
+    setVectorStatus("Processing...");
+    try {
+      const res = await fetch("/api/admin/vectorize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: ragType, title: ragTitle, text: ragText })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setVectorStatus(`✅ ${data.message}`);
+      setRagTitle("");
+      setRagText("");
+      setTimeout(() => setVectorStatus(""), 5000);
+    } catch (e: any) {
+      alert("Vectorization failed: " + e.message);
+      setVectorStatus("");
+    } finally {
+      setIsVectorizing(false);
+    }
+  };
+
   return (
     <ProtectedRoute allowedRoles={["admin"]}>
       <div className="flex h-screen flex-col bg-slate-100 overflow-hidden">
@@ -243,6 +273,12 @@ export default function TemplateEngine() {
                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${activeTab === "templates" ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300"}`}
               >
                 <span className="flex items-center gap-1.5"><Eye className="h-3.5 w-3.5" /> Saved Templates ({savedTemplates.length})</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("rag")}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${activeTab === "rag" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+              >
+                <span className="flex items-center gap-1.5"><Database className="h-3.5 w-3.5" /> RAG Knowledge Base</span>
               </button>
             </div>
           </div>
@@ -302,6 +338,63 @@ export default function TemplateEngine() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ─── RAG Knowledge Base Tab ──────────────────────────────── */}
+        {activeTab === "rag" && (
+          <div className="flex-1 overflow-auto p-8">
+            <div className="max-w-3xl mx-auto bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
+              <h2 className="text-2xl font-bold text-slate-800 mb-2">Upload RAG Knowledge Context</h2>
+              <p className="text-slate-500 mb-6 text-sm">
+                Paste Institutional Policies, Contract Terms, and Historical Precedents here. The system will slice this text, 
+                compute <strong className="text-slate-700">Hugging Face MiniLM vectors</strong>, and seamlessly push them into <strong className="text-slate-700">Pinecone</strong> to enforce AI compliance globally across templates.
+              </p>
+
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Context Type</label>
+                  <select 
+                    value={ragType} onChange={e => setRagType(e.target.value)}
+                    className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                     <option value="template">Institutional Template / Clause Policy</option>
+                     <option value="precedent">Historical Precedent / Reference Document</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Document / Context Title</label>
+                  <input 
+                    type="text" value={ragTitle} onChange={e => setRagTitle(e.target.value)}
+                    placeholder="e.g. Standard NDA Confidentiality Rules 2026"
+                    className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Full Text Content</label>
+                  <textarea 
+                    value={ragText} onChange={e => setRagText(e.target.value)}
+                    rows={12}
+                    placeholder="Paste the raw text of the policies here..."
+                    className="w-full border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    onClick={handleVectorize}
+                    disabled={isVectorizing}
+                    className="w-full flex justify-center items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl disabled:opacity-50 transition"
+                  >
+                    <Database className="h-5 w-5" />
+                    {isVectorizing ? "Chunking & Vectorizing into Pinecone..." : "Embed into Pinecone"}
+                  </button>
+                  {vectorStatus && <p className="text-sm mt-3 text-center font-medium text-green-700">{vectorStatus}</p>}
+                </div>
+              </div>
             </div>
           </div>
         )}

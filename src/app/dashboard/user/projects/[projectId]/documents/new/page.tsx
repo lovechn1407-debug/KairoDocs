@@ -64,40 +64,34 @@ export default function NewDocument() {
       const parseData = await parseRes.json();
       if (!parseData.success) throw new Error(parseData.error || "Failed to parse PDF");
 
-      // 2. AI Extraction
+      // 2. AI RAG Assembly & Drafting
       setStage("analyzing");
-      const tagRegex = /{{(.*?)}}/g;
-      const matches = [...selectedTemplate.content.matchAll(tagRegex)];
-      const variables = Array.from(new Set(matches.map((m: RegExpMatchArray) => m[1])));
 
-      let extractedResult: Record<string, string> = {};
-      if (variables.length > 0) {
-        const extractRes = await fetch("/api/extract", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: parseData.text, variables }),
-        });
-        const extractData = await extractRes.json();
-        if (!extractData.success) throw new Error(extractData.error || "AI Extraction Failed");
-        extractedResult = extractData.extractedData;
-      }
+      const extractRes = await fetch("/api/extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+           text: parseData.text, 
+           templateName: selectedTemplate.name 
+        }),
+      });
+      const extractData = await extractRes.json();
+      if (!extractData.success) throw new Error(extractData.error || "AI RAG Drafting Failed");
 
-      // 3. Fill Template — tables insert raw HTML, scalars get blue highlight
-      let populated = selectedTemplate.content;
-      for (const [key, val] of Object.entries(extractedResult)) {
-        if (key.startsWith("TABLE:")) {
-          // TABLE variables contain pre-built HTML — insert directly
-          populated = populated.replaceAll(`{{${key}}}`, val as string);
-        } else {
-          // Scalar variables get a blue highlighted span
-          populated = populated.replaceAll(
-            `{{${key}}}`,
-            `<span style="background:#dbeafe;color:#1e40af;padding:1px 4px;border-radius:3px;font-weight:600">${val}</span>`
-          );
-        }
-      }
+      // 3. Mount Draft & Notes into Jodit Editor
+      const notesHtml = extractData.validationNotes 
+        ? `<div style="background:#fff7ed; border-left:4px solid #f97316; padding:12px; margin-bottom:20px; font-size:14px; color:#9a3412; font-family:sans-serif;">
+             <strong>⚠️ AI RAG Validation Notes:</strong><br/>
+             ${extractData.validationNotes.replace(/\n/g, '<br/>')}
+           </div>` 
+        : "";
+
+      const populated = `<h1 style="text-align:center; margin-bottom:24px;">${extractData.title || selectedTemplate.name}</h1>
+          ${notesHtml}
+          ${extractData.draftHtml}`;
 
       setFinalContent(populated);
+
       setStage("review");
     } catch (e: any) {
       setErrorMsg(e.message);

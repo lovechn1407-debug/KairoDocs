@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { getIndex } from "@/lib/pinecone";
+import { embedText } from "@/lib/huggingface";
+import { marked } from "marked";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -9,26 +12,6 @@ const GEMINI_MODELS = [
   { model: "gemini-1.5-flash", version: "v1" },
 ];
 
-// ─── JSON array → styled HTML table ─────────────────────────────────────────
-function jsonToHtmlTable(rows: Record<string, any>[]): string {
-  if (!rows || rows.length === 0) return "<p><em>No data found</em></p>";
-  const headers = Object.keys(rows[0]);
-  const headerRow = headers.map(h =>
-    `<th style="border:1px solid #cbd5e1;padding:8px 12px;background:#f1f5f9;font-weight:600;text-align:left;white-space:nowrap">${h}</th>`
-  ).join("");
-  const bodyRows = rows.map(row =>
-    `<tr>${headers.map(h =>
-      `<td style="border:1px solid #cbd5e1;padding:8px 12px">${row[h] ?? ""}</td>`
-    ).join("")}</tr>`
-  ).join("\n");
-  return `
-<table style="border-collapse:collapse;width:100%;margin:12px 0;font-size:14px">
-  <thead><tr>${headerRow}</tr></thead>
-  <tbody>${bodyRows}</tbody>
-</table>`;
-}
-
-// ─── AI callers ──────────────────────────────────────────────────────────────
 async function callGroq(prompt: string): Promise<string | null> {
   for (const model of GROQ_MODELS) {
     try {
@@ -37,12 +20,9 @@ async function callGroq(prompt: string): Promise<string | null> {
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${GROQ_API_KEY}` },
         body: JSON.stringify({
           model,
-          messages: [
-            { role: "system", content: "You are a precise AI that extracts data from documents. Return ONLY valid raw JSON — no markdown, no code fences, no explanation." },
-            { role: "user", content: prompt },
-          ],
+          messages: [{ role: "user", content: prompt }],
           temperature: 0.1,
-          max_tokens: 4096,
+          max_tokens: 6000,
         }),
       });
       const data = await res.json();
@@ -63,7 +43,7 @@ async function callGemini(prompt: string): Promise<string | null> {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.1, maxOutputTokens: 4096 },
+          generationConfig: { temperature: 0.1, maxOutputTokens: 6000 },
         }),
       });
       const data = await res.json();
@@ -81,91 +61,100 @@ async function callAI(prompt: string): Promise<string> {
   return result;
 }
 
-function cleanJSON(raw: string): any {
-  const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
-  return JSON.parse(cleaned);
-}
-
-// ─── Main Route ──────────────────────────────────────────────────────────────
 export async function POST(req: Request) {
   try {
-    const { text, variables } = await req.json();
+    const { text, templateName } = await req.json();
 
-    if (!text) return NextResponse.json({ error: "No document text provided" }, { status: 400 });
-    if (!variables?.length) return NextResponse.json({ error: "No variables to extract" }, { status: 400 });
+    if (!text) return NextResponse.json({ error: "No user document text provided" }, { status: 400 });
 
-    const docText = text.substring(0, 28000);
+    const docText = text.substring(0, 25000); // Prevent context blowout
+    let templatesText = "No direct active templates found in vectors.";
+    let precedentsText = "No precedents found in vectors.";
 
-    // Separate scalar variables from dynamic table variables
-    const scalarVars = variables.filter((v: string) => !v.startsWith("TABLE:"));
-    const tableVars  = variables.filter((v: string) => v.startsWith("TABLE:"));
-
-    const extractedData: Record<string, string> = {};
-
-    // ── 1. Extract scalar fields ─────────────────────────────────────────
-    if (scalarVars.length > 0) {
-      const schema = scalarVars.reduce((acc: any, v: string) => {
-        acc[v] = `extracted value for ${v}`;
-        return acc;
-      }, {});
-
-      const prompt = `You are an AI that extracts information from legal documents.
-Read the document text below and extract the requested fields.
-If a field is not found, write "Not Found".
-Return ONLY a raw JSON object — no markdown, no code fences.
-
-Fields to extract:
-${JSON.stringify(schema, null, 2)}
-
-Document:
-"""
-${docText}
-"""`;
-
-      const raw = await callAI(prompt);
-      const parsed = cleanJSON(raw);
-      Object.assign(extractedData, parsed);
-    }
-
-    // ── 2. Extract dynamic tables ─────────────────────────────────────────
-    for (const tableVar of tableVars) {
-      // TABLE:PRODUCTS → "PRODUCTS"
-      const tableName = tableVar.replace("TABLE:", "");
-
-      const prompt = `You are an AI that extracts tabular data from documents.
-Find the table related to "${tableName}" in the document below.
-Extract ALL rows from that table. Include all columns you find, regardless of how many there are.
-If you don't find a matching table, return an empty array [].
-
-Return ONLY a raw JSON ARRAY of objects — one object per row, keys = column names.
-No markdown, no code fences, no explanation.
-
-Example output format:
-[{"Product":"Widget A","Qty":"10","Price":"₹500"},{"Product":"Widget B","Qty":"5","Price":"₹200"}]
-
-Document:
-"""
-${docText}
-"""`;
-
+    // Pinecone Retrieval if we have a templateName
+    if (templateName) {
       try {
-        const raw = await callAI(prompt);
-        const parsed = cleanJSON(raw);
-        if (Array.isArray(parsed)) {
-          // Convert to HTML table and store
-          extractedData[tableVar] = jsonToHtmlTable(parsed);
-        } else {
-          extractedData[tableVar] = "<em>Could not extract table data</em>";
+        const queryVector = await embedText(templateName);
+        const index = getIndex();
+        
+        const searchRes = await index.query({
+          vector: queryVector,
+          topK: 6,
+          includeMetadata: true
+        });
+
+        if (searchRes.matches && searchRes.matches.length > 0) {
+          const templates = searchRes.matches.filter(m => m.metadata?.type === "template");
+          const precedents = searchRes.matches.filter(m => m.metadata?.type === "precedent");
+
+          if (templates.length > 0) {
+            templatesText = templates.map((t, i) => `--- Template Segment ${i+1} ---\n${t.metadata?.text}`).join("\n\n");
+          }
+          if (precedents.length > 0) {
+            precedentsText = precedents.map((p, i) => `--- Precedent Segment ${i+1} ---\n${p.metadata?.text}`).join("\n\n");
+          }
         }
       } catch (e) {
-        extractedData[tableVar] = "<em>Table extraction failed</em>";
+        console.warn("Pinecone Vector Query Failed (continuing without RAG context):", e);
       }
     }
 
-    return NextResponse.json({ success: true, extractedData });
+    // Assemble structured prompt
+    const prompt = `Context Blocks (The RAG Input):
+
+SOURCE 1: Institutional Templates & Clauses
+${templatesText}
+
+SOURCE 2: Startup Project Data (Unstructured)
+${docText}
+
+SOURCE 3: Historical Precedents
+${precedentsText}
+
+Task Instructions:
+1. Identify & Extract: Locate the specific names, dates, budgets, and scopes of work within Source 2.
+2. Cross-Reference: Compare the startup's requirements against the mandatory clauses in Source 1. If there is a conflict (e.g., the startup wants 100% IP, but the institution requires 10%), prioritize Source 1 and add a comment for human review.
+3. Drafting: Generate a structured document in Markdown format that mimics a .docx structure based on Source 1 guidelines natively. Use professional, domain-specific terminology.
+4. Gap Analysis: If any information required by the template in Source 1 is missing from Source 2, do not hallucinate. Instead, insert a placeholder like [MISSING: PLEASE PROVIDE PAYMENT SCHEDULE] in the draft, and list these in Validation Notes.
+
+Output Format Requirements:
+You must strictly format your entire final response as follows, with no opening conversational remarks. Do not change the block labels.
+
+Document Title: [Name of Document]
+
+Draft Content:
+[The generated document text as structurally beautiful Markdown formatting. Render headers, bolded clauses, bullets, and any required tables using markdown.]
+
+Validation Notes:
+[List any discrepancies or missing data found during RAG analysis. If none, say "All requirements met."]
+`;
+
+    const rawOutput = await callAI(prompt);
+
+    // Parse output based on predictable structure
+    const titleMatch = rawOutput.match(/Document Title:\s*(.*)/i);
+    const notesMatch = rawOutput.match(/Validation Notes:([\s\S]*)/i);
+    
+    // Draft content is between "Draft Content:" and "Validation Notes:"
+    const contentRegex = /Draft Content:\s*([\s\S]*?)Validation Notes:/i;
+    const contentMatch = rawOutput.match(contentRegex);
+
+    const title = titleMatch ? titleMatch[1].trim() : templateName || "Generated Document";
+    const validationNotes = notesMatch ? notesMatch[1].trim() : "Unable to parse validation notes.";
+    const markdownDraft = contentMatch ? contentMatch[1].trim() : rawOutput;
+
+    // Convert Draft markdown into raw HTML asynchronously via marked
+    const htmlDraft = await marked.parse(markdownDraft);
+
+    return NextResponse.json({ 
+      success: true, 
+      title,
+      validationNotes,
+      draftHtml: htmlDraft
+    });
 
   } catch (error: any) {
-    console.error("[AI] Final error:", error.message);
+    console.error("[RAG AI] Final error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
