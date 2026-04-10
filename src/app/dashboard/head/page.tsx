@@ -58,7 +58,8 @@ export default function HeadDashboard() {
         createdAt: new Date().toISOString(),
         used: false,
       });
-      setInviteLink(`${window.location.origin}/signup?invite=${token}`);
+      const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://kairodocs-nojs.vercel.app';
+      setInviteLink(`${baseUrl}/signup?invite=${token}`);
     } catch (e: any) {
       alert("Failed to generate link: " + e.message);
     } finally {

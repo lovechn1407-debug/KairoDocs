@@ -50,7 +50,8 @@ export default function AdminDepartments() {
         createdAt: new Date().toISOString(),
         used: false,
       });
-      setHeadInviteLink(`${window.location.origin}/signup?invite=${token}`);
+      const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://kairodocs-nojs.vercel.app';
+      setHeadInviteLink(`${baseUrl}/signup?invite=${token}`);
     } catch (e: any) {
       alert("Failed to generate link: " + e.message);
     } finally {
