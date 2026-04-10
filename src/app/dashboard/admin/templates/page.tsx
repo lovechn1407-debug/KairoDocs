@@ -108,6 +108,8 @@ export default function TemplateEngine() {
   const [ragDate, setRagDate] = useState(new Date().toISOString().split('T')[0]);
   const [isVectorizing, setIsVectorizing] = useState(false);
   const [vectorStatus, setVectorStatus] = useState("");
+  const [isParsing, setIsParsing] = useState(false);
+  const [pdfInfo, setPdfInfo] = useState<{ name: string; pages: number; chars: number } | null>(null);
   // RAG Knowledge Viewer states
   const [ragKnowledge, setRagKnowledge] = useState<any[]>([]);
   const [totalVectors, setTotalVectors] = useState(0);
@@ -344,6 +346,28 @@ export default function TemplateEngine() {
     if (catData) setRagTags(catData.autoTags);
   };
 
+  const handlePdfUpload = async (file: File) => {
+    if (!file) return;
+    setIsParsing(true);
+    setPdfInfo(null);
+    try {
+      const fd = new FormData();
+      fd.append('pdf', file);
+      const res = await fetch('/api/admin/parse-pdf', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setRagText(data.text);
+      setPdfInfo({ name: data.fileName, pages: data.pages, chars: data.charCount });
+      if (!ragTitle.trim()) {
+        setRagTitle(file.name.replace(/\.pdf$/i, '').replace(/[-_]/g, ' '));
+      }
+    } catch (e: any) {
+      alert('PDF parse failed: ' + e.message);
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
   const handleVectorize = async () => {
     if (!ragTitle.trim() || !ragText.trim()) return alert("Title and Text are required.");
     setIsVectorizing(true);
@@ -381,6 +405,7 @@ export default function TemplateEngine() {
       setRagTitle("");
       setRagText("");
       setRagVersion("1.0");
+      setPdfInfo(null);
       // Refresh the knowledge list so new entry shows immediately
       fetchKnowledge();
       setTimeout(() => setVectorStatus(""), 5000);
@@ -630,9 +655,59 @@ export default function TemplateEngine() {
                   />
                 </div>
 
-                {/* ── Text Content ─────────────────────────────── */}
+                {/* ── Content: PDF upload OR direct text ──────── */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Clause / Policy Content</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-semibold text-slate-700">Clause / Policy Content</label>
+                    <span className="text-xs text-slate-400">Upload a PDF or paste text directly</span>
+                  </div>
+
+                  {/* PDF Drop Zone */}
+                  <label
+                    htmlFor="pdf-upload"
+                    className={`flex items-center gap-3 w-full border-2 border-dashed rounded-xl px-5 py-4 cursor-pointer transition mb-3 ${
+                      isParsing
+                        ? 'border-blue-300 bg-blue-50'
+                        : pdfInfo
+                        ? 'border-green-300 bg-green-50'
+                        : 'border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50'
+                    }`}
+                  >
+                    <span className="text-2xl">{isParsing ? '⏳' : pdfInfo ? '✅' : '📎'}</span>
+                    <div className="flex-1 min-w-0">
+                      {isParsing ? (
+                        <p className="text-sm font-medium text-blue-600">Extracting text from PDF...</p>
+                      ) : pdfInfo ? (
+                        <>
+                          <p className="text-sm font-semibold text-green-700 truncate">{pdfInfo.name}</p>
+                          <p className="text-xs text-green-600">{pdfInfo.pages} pages · {pdfInfo.chars.toLocaleString()} characters extracted</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm font-medium text-slate-600">Click to upload PDF</p>
+                          <p className="text-xs text-slate-400">Max 10MB · Text will be auto-extracted and editable below</p>
+                        </>
+                      )}
+                    </div>
+                    {pdfInfo && (
+                      <button
+                        type="button"
+                        onClick={e => { e.preventDefault(); setRagText(''); setPdfInfo(null); }}
+                        className="text-xs text-red-400 hover:text-red-600 font-medium px-2 py-1 rounded"
+                      >
+                        Clear
+                      </button>
+                    )}
+                    <input
+                      id="pdf-upload"
+                      type="file"
+                      accept=".pdf"
+                      className="hidden"
+                      onChange={e => { const f = e.target.files?.[0]; if (f) handlePdfUpload(f); e.target.value = ''; }}
+                    />
+                  </label>
+
+                  {/* Editable Text Area */}
                   <textarea 
                     value={ragText} onChange={e => setRagText(e.target.value)}
                     rows={10}
