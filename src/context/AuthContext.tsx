@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, User } from "firebase/auth";
+import { onAuthStateChanged, User, setPersistence, browserSessionPersistence } from "firebase/auth";
 import { auth, database } from "@/lib/firebase";
 import { ref, get } from "firebase/database";
 
@@ -28,6 +28,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Ensure auth state only persists in the current tab/session
+    setPersistence(auth, browserSessionPersistence).catch(console.error);
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
