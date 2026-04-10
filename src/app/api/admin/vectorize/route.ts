@@ -39,7 +39,7 @@ export async function POST(req: Request) {
 
     // Upsert vectors into Pinecone
     const index = getIndex();
-    await index.upsert(vectors);
+    await index.upsert(vectors as any);
 
     return NextResponse.json({
       success: true,
