@@ -212,7 +212,7 @@ export default function DocumentEditor() {
                           <summary className="text-sm text-blue-600 font-medium cursor-pointer hover:underline mb-2">View Document Content</summary>
                           <div 
                             className="prose prose-sm max-w-none bg-white p-4 border border-slate-200 rounded mt-2 max-h-64 overflow-y-auto"
-                            dangerouslySetInnerHTML={{ __html: ver.documentContent }}
+                            dangerouslySetInnerHTML={{ __html: ver.documentContent || ver.content || "<i>No content safely recorded</i>" }}
                           />
                         </details>
                       </div>

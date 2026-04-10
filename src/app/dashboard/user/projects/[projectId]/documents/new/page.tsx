@@ -122,7 +122,7 @@ export default function NewDocument() {
         documentContent: finalContent,
         status: "Pending",
         createdAt: new Date().toISOString(),
-        versions: [{ content: finalContent, savedAt: new Date().toISOString() }],
+        versions: [{ documentContent: finalContent, status: "Submitted", savedAt: new Date().toISOString() }],
       });
       router.push(`/dashboard/user/projects/${projectId}`);
     } catch (e: any) {

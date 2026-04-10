@@ -186,7 +186,7 @@ export default function HeadSubmissions() {
                                  <summary className="text-sm text-blue-600 font-medium cursor-pointer hover:underline mb-2 pointer-events-auto">View Document Content</summary>
                                  <div 
                                    className="prose prose-sm max-w-none bg-white p-4 border border-slate-200 rounded mt-2 max-h-64 overflow-y-auto pointer-events-none"
-                                   dangerouslySetInnerHTML={{ __html: ver.documentContent }}
+                                   dangerouslySetInnerHTML={{ __html: ver.documentContent || ver.content || "<i>No content safely recorded</i>" }}
                                  />
                                </details>
                              </div>
