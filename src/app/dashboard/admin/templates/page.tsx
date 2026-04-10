@@ -99,9 +99,10 @@ export default function TemplateEngine() {
   
   // RAG Upload States
   const [ragType, setRagType] = useState("template");
+  const [ragCategory, setRagCategory] = useState("MOU");
   const [ragTitle, setRagTitle] = useState("");
   const [ragText, setRagText] = useState("");
-  const [ragTags, setRagTags] = useState("");
+  const [ragTags, setRagTags] = useState("mou, legal");
   const [ragVersion, setRagVersion] = useState("1.0");
   const [ragDate, setRagDate] = useState(new Date().toISOString().split('T')[0]);
   const [isVectorizing, setIsVectorizing] = useState(false);
@@ -308,6 +309,39 @@ export default function TemplateEngine() {
     setCustomTableName("");
   };
 
+  const TEMPLATE_CATEGORIES: Record<string, { label: string; autoTags: string; placeholder: string }> = {
+    "MOU":            { label: "MOU (Memorandum of Understanding)", autoTags: "mou, legal, agreement",         placeholder: "Paste MOU clauses, obligations, IP sharing terms..." },
+    "Invoice":        { label: "Invoice / Payment Terms",           autoTags: "invoice, payment, billing",     placeholder: "Paste invoice rules, GST clauses, payment schedule terms..." },
+    "Purchase Order": { label: "Purchase Order",                    autoTags: "purchase-order, procurement",   placeholder: "Paste purchase order terms, delivery, penalty clauses..." },
+    "NDA":            { label: "NDA (Non-Disclosure Agreement)",    autoTags: "nda, confidentiality, legal",   placeholder: "Paste NDA clauses, confidentiality obligations..." },
+    "Service Agreement": { label: "Service Agreement / SLA",       autoTags: "service, sla, agreement",       placeholder: "Paste SLA terms, deliverables, termination clauses..." },
+    "Equity / Shareholding": { label: "Equity / Shareholding",     autoTags: "equity, shares, shareholding",  placeholder: "Paste equity clauses, vesting, dilution terms..." },
+    "Custom":         { label: "Custom / Other",                   autoTags: "",                             placeholder: "Paste your document content here..." },
+  };
+
+  const PRECEDENT_CATEGORIES: Record<string, { label: string; autoTags: string; placeholder: string }> = {
+    "Approved MOU":      { label: "Approved MOU",              autoTags: "mou, approved, precedent",           placeholder: "Paste text from a previously approved MOU..." },
+    "Approved Invoice":  { label: "Approved Invoice",          autoTags: "invoice, approved, precedent",       placeholder: "Paste text from a previously approved invoice..." },
+    "Approved PO":       { label: "Approved Purchase Order",   autoTags: "purchase-order, approved, precedent",placeholder: "Paste text from an approved purchase order..." },
+    "General Precedent": { label: "General Reference Document",autoTags: "reference, precedent",              placeholder: "Paste any approved reference document text here..." },
+  };
+
+  const activeCategoryMap = ragType === "template" ? TEMPLATE_CATEGORIES : PRECEDENT_CATEGORIES;
+
+  const handleTypeChange = (newType: string) => {
+    setRagType(newType);
+    const firstCat = Object.keys(newType === "template" ? TEMPLATE_CATEGORIES : PRECEDENT_CATEGORIES)[0];
+    setRagCategory(firstCat);
+    const catData = (newType === "template" ? TEMPLATE_CATEGORIES : PRECEDENT_CATEGORIES)[firstCat];
+    if (catData) setRagTags(catData.autoTags);
+  };
+
+  const handleCategoryChange = (cat: string) => {
+    setRagCategory(cat);
+    const catData = activeCategoryMap[cat];
+    if (catData) setRagTags(catData.autoTags);
+  };
+
   const handleVectorize = async () => {
     if (!ragTitle.trim() || !ragText.trim()) return alert("Title and Text are required.");
     setIsVectorizing(true);
@@ -318,7 +352,8 @@ export default function TemplateEngine() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          type: ragType, 
+          type: ragType,
+          category: ragCategory,
           title: ragTitle, 
           text: ragText,
           tags,
@@ -342,7 +377,6 @@ export default function TemplateEngine() {
       setVectorStatus(`✅ ${data.message}`);
       setRagTitle("");
       setRagText("");
-      setRagTags("");
       setRagVersion("1.0");
       // Refresh the knowledge list so new entry shows immediately
       fetchKnowledge();
@@ -456,30 +490,76 @@ export default function TemplateEngine() {
                 compute <strong className="text-slate-700">Hugging Face MiniLM vectors</strong>, and seamlessly push them into <strong className="text-slate-700">Pinecone</strong> to enforce AI compliance globally across templates.
               </p>
 
-              <div className="space-y-5">
+              <div className="space-y-6">
+
+                {/* ── Level 1: Context Type ───────────────────── */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Context Type</label>
-                  <select 
-                    value={ragType} onChange={e => setRagType(e.target.value)}
-                    className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                     <option value="template">Institutional Template / Clause Policy</option>
-                     <option value="precedent">Historical Precedent / Reference Document</option>
-                  </select>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Context Type</label>
+                  <div className="flex gap-3">
+                    {[
+                      { value: "template",  label: "Templates",  desc: "Institutional clauses & policies",    color: "blue" },
+                      { value: "precedent", label: "Precedents", desc: "Historical approved documents",       color: "purple" },
+                    ].map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => handleTypeChange(opt.value)}
+                        className={`flex-1 text-left p-4 rounded-xl border-2 transition ${
+                          ragType === opt.value
+                            ? opt.color === "blue"
+                              ? "border-blue-500 bg-blue-50"
+                              : "border-purple-500 bg-purple-50"
+                            : "border-slate-200 bg-white hover:border-slate-300"
+                        }`}
+                      >
+                        <p className={`font-bold text-sm ${ragType === opt.value ? (opt.color === "blue" ? "text-blue-700" : "text-purple-700") : "text-slate-700"}`}>{opt.label}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{opt.desc}</p>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
+                {/* ── Level 2: Document Category ──────────────── */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Document / Context Title</label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">
+                    Document Category
+                    <span className="ml-2 text-[10px] text-slate-400 normal-case font-normal">— select to auto-populate tags</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(activeCategoryMap).map(([key, cat]) => (
+                      <button
+                        key={key}
+                        onClick={() => handleCategoryChange(key)}
+                        className={`text-left px-4 py-2.5 rounded-lg border text-sm font-medium transition ${
+                          ragCategory === key
+                            ? ragType === "template"
+                              ? "border-blue-400 bg-blue-500 text-white"
+                              : "border-purple-400 bg-purple-500 text-white"
+                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                        }`}
+                      >
+                        {key}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2">{activeCategoryMap[ragCategory]?.label}</p>
+                </div>
+
+                <hr className="border-slate-100" />
+
+                {/* ── Title ───────────────────────────────────── */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Context Title</label>
                   <input 
                     type="text" value={ragTitle} onChange={e => setRagTitle(e.target.value)}
-                    placeholder="e.g. Standard NDA Confidentiality Rules 2026"
+                    placeholder={`e.g. ${ragCategory} Standard Clauses 2026`}
                     className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
 
+                {/* ── Version + Date ──────────────────────────── */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Version Number</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Version</label>
                     <input 
                       type="text" value={ragVersion} onChange={e => setRagVersion(e.target.value)}
                       placeholder="e.g. 2.1"
@@ -495,25 +575,27 @@ export default function TemplateEngine() {
                   </div>
                 </div>
 
+                {/* ── Tags (auto-populated, editable) ─────────── */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Tags / Keywords
-                    <span className="ml-2 text-xs font-normal text-slate-400">(comma separated — used for precise Pinecone filtering)</span>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Tags
+                    <span className="ml-2 text-xs font-normal text-slate-400">(auto-populated · editable · comma separated)</span>
                   </label>
                   <input 
                     type="text" value={ragTags} onChange={e => setRagTags(e.target.value)}
-                    placeholder="e.g. legal, nda, confidentiality, ip-rights"
+                    placeholder="e.g. legal, mou, confidentiality"
                     className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
-                  <p className="text-xs text-slate-400 mt-1">These tags let the AI filter relevant context precisely during document generation.</p>
                 </div>
 
+                {/* ── Text Content ─────────────────────────────── */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Full Text Content</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Clause / Policy Content</label>
                   <textarea 
                     value={ragText} onChange={e => setRagText(e.target.value)}
                     rows={10}
-                    placeholder="Paste the raw text of the policies here..."
-                    className="w-full border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    placeholder={activeCategoryMap[ragCategory]?.placeholder ?? "Paste your document content here..."}
+                    className="w-full border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-sm"
                   />
                 </div>
 
