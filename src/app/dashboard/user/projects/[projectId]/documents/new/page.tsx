@@ -20,8 +20,6 @@ export default function NewDocument() {
   const projectId = params.projectId as string;
 
   const [project, setProject] = useState<any>(null);
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [file, setFile] = useState<File | null>(null);
   const [documentName, setDocumentName] = useState("");
 
@@ -44,16 +42,12 @@ export default function NewDocument() {
     const fetchData = async () => {
       const projSnap = await get(ref(database, `projects/${projectId}`));
       if (projSnap.exists()) setProject(projSnap.val());
-
-      const tmplSnap = await get(ref(database, "templates"));
-      if (tmplSnap.exists()) setTemplates(Object.values(tmplSnap.val()));
     };
     fetchData();
   }, [projectId]);
 
   const handleProcess = async () => {
     if (!file) return alert("Please select a document to upload");
-    if (!selectedTemplate) return alert("Please select a template format");
     if (!documentName.trim()) return alert("Please enter a document name");
 
     setStage("parsing");
@@ -75,7 +69,7 @@ export default function NewDocument() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
            text: parseData.text, 
-           templateName: selectedTemplate.name 
+           documentName: documentName.trim()
         }),
       });
       const extractData = await extractRes.json();
@@ -90,16 +84,16 @@ export default function NewDocument() {
         : "";
 
       // Clean draft for DOCX (no orange validation notes box)
-      const cleanDraft = `<h1 style="text-align:center; margin-bottom:24px;">${extractData.title || selectedTemplate.name}</h1>${extractData.draftHtml}`;
+      const cleanDraft = `<h1 style="text-align:center; margin-bottom:24px;">${extractData.title || documentName}</h1>${extractData.draftHtml}`;
       setCleanDraftHtml(cleanDraft);
 
       // Full content for Jodit review (includes the validation notes notice)
-      const populated = `<h1 style="text-align:center; margin-bottom:24px;">${extractData.title || selectedTemplate.name}</h1>
+      const populated = `<h1 style="text-align:center; margin-bottom:24px;">${extractData.title || documentName}</h1>
           ${notesHtml}
           ${extractData.draftHtml}`;
 
       setFinalContent(populated);
-      setDocTitle(extractData.title || selectedTemplate.name);
+      setDocTitle(extractData.title || documentName);
       setStage("review");
     } catch (e: any) {
       setErrorMsg(e.message);
@@ -119,8 +113,6 @@ export default function NewDocument() {
         userId: user?.uid,
         userEmail: user?.email,
         documentName: documentName.trim(),
-        templateId: selectedTemplate.id,
-        templateName: selectedTemplate.name,
         content: finalContent,
         documentContent: finalContent,
         status: "Pending",
@@ -145,7 +137,6 @@ export default function NewDocument() {
         body: JSON.stringify({
           htmlContent: cleanDraftHtml, // no validation notes in the downloaded file
           documentName: documentName.trim() || docTitle,
-          templateName: selectedTemplate?.name || '',
         }),
       });
       if (!res.ok) {
@@ -223,21 +214,7 @@ export default function NewDocument() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
-                  {/* Template Select */}
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Select Format Template *</label>
-                    <select
-                      className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-blue-500 focus:outline-none"
-                      onChange={e => setSelectedTemplate(templates.find(t => t.id === e.target.value))}
-                      defaultValue=""
-                    >
-                      <option value="" disabled>-- Choose a template --</option>
-                      {templates.map(t => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                   {/* File Upload */}
                   <div>
@@ -266,7 +243,7 @@ export default function NewDocument() {
                 <div className="flex justify-end pt-2">
                   <button
                     onClick={handleProcess}
-                    disabled={!selectedTemplate || !file || !documentName.trim()}
+                    disabled={!file || !documentName.trim()}
                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium transition disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Cpu className="h-5 w-5" />

@@ -75,36 +75,35 @@ async function callAI(prompt: string): Promise<string> {
 
 export async function POST(req: Request) {
   try {
-    const { text, templateName, category: categoryHint } = await req.json();
+    const { text, documentName, category: categoryHint } = await req.json();
 
     if (!text) return NextResponse.json({ error: "No user document text provided" }, { status: 400 });
 
     const docText = text.substring(0, 25000);
-    let templatesText = "No direct active templates found in vectors.";
+    let templatesText = "No direct active precedents found in vectors.";
     let precedentsText = "No precedents found in vectors.";
 
-    // Detect document category from templateName for precise Pinecone filtering
-    const tnLower = (templateName || '').toLowerCase();
+    // Detect document category from documentName for precise Pinecone filtering
+    const tnLower = (documentName || '').toLowerCase();
     const detectedCategory = categoryHint
       || (tnLower.includes('mou') ? 'MOU'
         : tnLower.includes('invoice') ? 'Invoice'
         : tnLower.includes('purchase') || tnLower.includes('po') ? 'Purchase Order'
         : tnLower.includes('nda') ? 'NDA'
         : tnLower.includes('service') || tnLower.includes('sla') ? 'Service Agreement'
-        : tnLower.includes('equity') || tnLower.includes('share') ? 'Equity / Shareholding'
         : null);
 
-    console.log(`[Extract] Template: "${templateName}" | Detected category: ${detectedCategory || 'any'}`);
+    console.log(`[Extract] Document Name: "${documentName}" | Detected category: ${detectedCategory || 'any'}`);
 
-    if (templateName) {
+    if (documentName) {
       try {
-        const queryVector = await embedText(templateName);
+        const queryVector = await embedText(documentName);
         const index = getIndex();
 
-        // Build category filter — only add if we detected a known category
+        // Build category filter
         const categoryFilter = detectedCategory
-          ? { type: { $eq: "template" }, category: { $eq: detectedCategory } }
-          : { type: { $eq: "template" } };
+          ? { type: { $eq: "precedent" }, category: { $eq: detectedCategory } }
+          : { type: { $eq: "precedent" } };
 
         // Source 1: Template structures & clauses — filtered by category
         const templateRes = await index.query({
@@ -158,20 +157,20 @@ export async function POST(req: Request) {
     // Assemble structured prompt
     const prompt = `Context Blocks (The RAG Input):
 
-SOURCE 1: Institutional Templates & Clauses
+SOURCE 1: Institutional Precedents & Policies
 ${templatesText}
 
 SOURCE 2: Startup Project Data (Unstructured)
 ${docText}
 
-SOURCE 3: Historical Precedents
+SOURCE 3: Historical Match
 ${precedentsText}
 
 Task Instructions:
 1. Identify & Extract: Locate the specific names, dates, budgets, and scopes of work within Source 2.
-2. Cross-Reference: Compare the startup's requirements against the mandatory clauses in Source 1. If there is a conflict (e.g., the startup wants 100% IP, but the institution requires 10%), prioritize Source 1 and add a comment for human review.
-3. Drafting: Generate a structured document in Markdown format that mimics a .docx structure based on Source 1 guidelines natively. Use professional, domain-specific terminology.
-4. Gap Analysis: If any information required by the template in Source 1 is missing from Source 2, do not hallucinate. Instead, insert a placeholder like [MISSING: PLEASE PROVIDE PAYMENT SCHEDULE] in the draft, and list these in Validation Notes.
+2. Cross-Reference: Compare the startup's requirements against the best-practice Precedents in Source 1/3. Focus on ensuring standard required clauses from the precedents are included.
+3. Drafting: Generate a beautifully structured document in Markdown format that mimics a .docx structure. Use professional, domain-specific terminology. Use HTML tables where appropriate if tabular data is provided.
+4. Gap Analysis: If critical information expected in standard ${documentName || 'documents'} is missing from Source 2, insert placeholders and list them in Validation Notes.
 
 Output Format Requirements:
 You must strictly format your entire final response as follows, with no opening conversational remarks. Do not change the block labels.
@@ -191,11 +190,10 @@ Validation Notes:
     const titleMatch = rawOutput.match(/Document Title:\s*(.*)/i);
     const notesMatch = rawOutput.match(/Validation Notes:([\s\S]*)/i);
     
-    // Draft content is between "Draft Content:" and "Validation Notes:"
     const contentRegex = /Draft Content:\s*([\s\S]*?)Validation Notes:/i;
     const contentMatch = rawOutput.match(contentRegex);
 
-    const title = titleMatch ? titleMatch[1].trim() : templateName || "Generated Document";
+    const title = titleMatch ? titleMatch[1].trim() : documentName || "Generated Document";
     const validationNotes = notesMatch ? notesMatch[1].trim() : "Unable to parse validation notes.";
     const markdownDraft = contentMatch ? contentMatch[1].trim() : rawOutput;
 
