@@ -122,13 +122,24 @@ export default function TemplateEngine() {
   const fetchKnowledge = async () => {
     setLoadingKnowledge(true);
     try {
-      const res = await fetch('/api/admin/vectors');
-      const data = await res.json();
-      if (data.success) {
-        setRagKnowledge((data.entries as any[]).sort((a, b) => 
+      // Read directly from Firebase with the authenticated client SDK
+      const snap = await get(ref(database, "ragKnowledge"));
+      if (snap.exists()) {
+        const entries = (Object.values(snap.val()) as any[]).sort((a, b) =>
           new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
-        ));
-        setTotalVectors(data.totalVectors);
+        );
+        setRagKnowledge(entries);
+      } else {
+        setRagKnowledge([]);
+      }
+
+      // Separately fetch Pinecone vector count from API (no Firebase needed)
+      try {
+        const res = await fetch('/api/admin/vectors');
+        const data = await res.json();
+        if (data.success) setTotalVectors(data.totalVectors);
+      } catch {
+        // Non-fatal — vector count badge just won't show
       }
     } catch (e) {
       console.warn('Failed to fetch knowledge:', e);
@@ -138,18 +149,20 @@ export default function TemplateEngine() {
   };
 
   const handleDeleteKnowledge = async (entry: any) => {
-    if (!confirm(`Delete "${entry.title}" from Pinecone?`)) return;
+    if (!confirm(`Delete "${entry.title}" from Pinecone and registry?`)) return;
     setDeletingId(entry.id);
     try {
-      const res = await fetch('/api/admin/vectors', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ registryId: entry.id, vectorIds: entry.vectorIds }),
-      });
-      if (res.ok) {
-        setRagKnowledge(prev => prev.filter(e => e.id !== entry.id));
-      } else {
-        alert('Delete failed.');
+      // Delete from Firebase registry using authenticated client SDK
+      await remove(ref(database, `ragKnowledge/${entry.id}`));
+      setRagKnowledge(prev => prev.filter(e => e.id !== entry.id));
+
+      // Delete vectors from Pinecone via API (no auth needed for this)
+      if (entry.vectorIds?.length > 0) {
+        fetch('/api/admin/vectors', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ registryId: entry.id, vectorIds: entry.vectorIds }),
+        }).catch(e => console.warn('Pinecone delete failed (non-fatal):', e.message));
       }
     } catch (e) {
       alert('Delete failed.');
