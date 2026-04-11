@@ -32,7 +32,7 @@ export default function HeadSubmissions() {
       if (!res.ok) throw new Error('Download failed');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = window.document.createElement('a');
       a.href = url;
       a.download = `${fileName.replace(/\s+/g, '_')}.docx`;
       a.click();

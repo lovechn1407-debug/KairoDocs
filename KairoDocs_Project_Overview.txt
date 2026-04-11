@@ -1,0 +1,62 @@
+========================================================================
+                 KAIRODOCS - PROJECT ARCHITECTURE & WORKFLOW
+========================================================================
+
+1. CORE FRAMEWORKS & LANGUAGES
+------------------------------------------------------------------------
+• Next.js 14 (React Framework)
+  Why we used it: It allows us to build the frontend (UI) and the backend (API routes) in a single unified codebase. It provides fast server-side rendering and seamless routing.
+  
+• TypeScript
+  Why we used it: It adds strong typing to JavaScript, catching bugs before the code even runs and ensuring our data structures (like user roles and document objects) remain strictly enforced.
+
+• Tailwind CSS & Framer Motion
+  Why we used it: Tailwind provides rapid, beautiful styling without needing separate CSS files. Framer Motion handles all the smooth, professional animations (like the expanding sidebars and fading cards).
+
+2. DATABASE & AUTHENTICATION
+------------------------------------------------------------------------
+• Firebase Authentication
+  Why we used it: For highly secure, enterprise-grade login systems. It manages our Admin, Department Head, and User sessions safely.
+
+• Firebase Realtime Database
+  Why we used it: It allows data to sync instantly across the platform. When a User saves a draft, or a Head leaves a comment, Firebase pushes the update to everyone's screen in real-time without needing a page refresh.
+
+3. AI & RAG ENGINE (The Core Mechanism)
+------------------------------------------------------------------------
+• Groq / Llama 3 (AI Generation)
+  Why we used it: Groq runs Large Language Models at lightning speed. It powers the core intelligence of KairoDocs—reading PDFs, formatting unstructured data, and assembling professional documents.
+
+• Pinecone (Vector Database)
+  Why we used it: Standard databases search by keywords. Pinecone searches by "meaning" (semantic search). We use it as the platform's brain to store institutional rules, precedents, and clauses.
+
+• Hugging Face MiniLM (Embedding Engine)
+  Why we used it: AI cannot natively read English. Hugging Face translates English text (like a Legal Policy PDF) into a massive array of numbers (a Vector) so that Pinecone can store and understand it.
+
+• pdf-parse (Text Extraction)
+  Why we used it: To read the raw text out of uploaded PDF files on the backend before feeding them into the AI.
+
+4. PLATFORMS & DEPLOYMENT
+------------------------------------------------------------------------
+• Vercel
+  Why we used it: The absolute best hosting platform for Next.js apps. It takes our code, optimizes it, and hosts our API routes on Serverless Functions, automatically scaling if traffic spikes.
+
+• GitHub
+  Why we used it: Version control. It tracks every single code change we make, allowing us to roll back mistakes and automatically trigger a live Vercel deployment whenever new code is pushed.
+
+5. THE MECHANISMS & WORKFLOWS
+------------------------------------------------------------------------
+A. The RAG Workflow (Retrieval-Augmented Generation)
+   This is how the AI generates documents without templates:
+   1. Ingestion: An Admin uploads an established Legal Clause (PDF). Hugging Face turns the text into mathematical Vectors, and Pinecone stores them safely.
+   2. Retrieval: A User types "Supplier MOU" and uploads their raw startup data. The system asks Pinecone: "Find the 3 most relevant rules for an MOU."
+   3. Generation: Pinecone returns the official rules. The system packages those rules + the User's startup data, and hands it all to Groq AI.
+   4. Output: Groq perfectly formats the User's data following the exact strict structure of the retrieved rules.
+
+B. The Review & Approval Workflow
+   1. User creates a document using the AI and clicks "Submit". 
+   2. Status changes to "Pending" in Firebase.
+   3. The Department Head gets notified. They can use the built-in Jodit Rich Text Editor to review and modify lines.
+   4. If Approved, the platform unlocks the DOCX download button for the User.
+
+C. DOCX Generation Engine
+   Because browsers cannot cleanly "Save As Word", we built a custom backend parser using the `docx` package. When a user clicks Download, the server translates the HTML into raw Office XML, applies the premium "Garamond" legal font, and serves the file directly to the user's hard drive.

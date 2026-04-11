@@ -17,7 +17,7 @@ export default function DocumentEditor() {
   const projectId = params.projectId as string;
   const documentId = params.documentId as string;
 
-  const [document, setDoc] = useState<any>(null);
+  const [docData, setDocData] = useState<any>(null);
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -26,24 +26,24 @@ export default function DocumentEditor() {
   const editorRef = useRef<any>(null);
 
   const handleDownloadDocx = async () => {
-    if (!document) return;
+    if (!docData) return;
     setIsDownloading(true);
     try {
       const res = await fetch('/api/generate-docx', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          htmlContent: document.documentContent || content,
-          documentName: document.documentName || "Document",
-          templateName: document.templateName || "Template",
+          htmlContent: docData.documentContent || content,
+          documentName: docData.documentName || "Document",
+          templateName: docData.templateName || "Template",
         }),
       });
       if (!res.ok) throw new Error('Download failed');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = window.document.createElement('a');
       a.href = url;
-      const fileName = document.documentName || "Document";
+      const fileName = docData.documentName || "Document";
       a.download = `${fileName.replace(/\s+/g, '_')}.docx`;
       a.click();
       URL.revokeObjectURL(url);
@@ -69,7 +69,7 @@ export default function DocumentEditor() {
       const snap = await get(ref(database, `submissions/${documentId}`));
       if (snap.exists()) {
         const data = snap.val();
-        setDoc(data);
+        setDocData(data);
         setContent(data.documentContent || "");
       }
       setLoading(false);
@@ -88,7 +88,7 @@ export default function DocumentEditor() {
         savedAt: new Date().toISOString()
       };
       
-      const versions = [...(document.versions || []), newVersion];
+      const versions = [...(docData.versions || []), newVersion];
 
       await update(ref(database, `submissions/${documentId}`), {
         documentContent: content,
@@ -133,7 +133,7 @@ export default function DocumentEditor() {
     </ProtectedRoute>
   );
 
-  if (!document) return (
+  if (!docData) return (
     <ProtectedRoute allowedRoles={["user"]}>
       <div className="p-8 max-w-5xl mx-auto text-center">
         <h2 className="text-xl font-semibold text-slate-800">Document not found</h2>
@@ -155,16 +155,16 @@ export default function DocumentEditor() {
             </Link>
             <div>
               <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                {document.projectName || "Document"} 
+                {docData.projectName || "Document"} 
                 <span className="text-slate-300 dark:text-slate-600 font-normal">/</span> 
-                {document.templateName || "Unknown Template"}
+                {docData.templateName || "Unknown Template"}
               </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Status: {document.status}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Status: {docData.status}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-             {document.status === "Approved" && (
+             {docData.status === "Approved" && (
                 <button
                   onClick={handleDownloadDocx}
                   disabled={isDownloading}
@@ -197,14 +197,14 @@ export default function DocumentEditor() {
           <div className="max-w-4xl flex flex-col gap-6 mx-auto">
             
             {/* Feedback Alert */}
-            {document.status === "Needs Edit" && document.feedback && (
+            {docData.status === "Needs Edit" && docData.feedback && (
               <div className="bg-orange-50 border-l-4 border-orange-500 p-5 rounded-r-xl shadow-sm">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
                   <div>
                     <h3 className="text-sm font-bold text-orange-800">Action Required: Department Head Feedback</h3>
                     <div className="mt-1.5 text-sm text-orange-700/90 whitespace-pre-wrap leading-relaxed">
-                      {document.feedback}
+                      {docData.feedback}
                     </div>
                   </div>
                 </div>
@@ -212,14 +212,14 @@ export default function DocumentEditor() {
             )}
 
             {/* Document Warning for approved docs */}
-            {document.status === "Approved" && (
+            {docData.status === "Approved" && (
                 <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 p-4 rounded-xl text-green-800 text-sm font-medium text-center shadow-sm">
                     This document has been Approved. Editing it here and resubmitting will change its status back to Pending.
                 </div>
             )}
 
             {/* Version History */}
-            {document.versions && document.versions.length > 0 && (
+            {docData.versions && docData.versions.length > 0 && (
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
                 <button 
                   onClick={() => setShowHistory(!showHistory)}
@@ -227,13 +227,13 @@ export default function DocumentEditor() {
                 >
                   <div className="flex items-center gap-2">
                     <History className="h-5 w-5 text-slate-500 dark:text-slate-400" />
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">Version History ({document.versions.length})</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Version History ({docData.versions.length})</span>
                   </div>
                   {showHistory ? <ChevronDown className="h-5 w-5 text-slate-400 dark:text-slate-500"/> : <ChevronRight className="h-5 w-5 text-slate-400 dark:text-slate-500"/>}
                 </button>
                 {showHistory && (
                   <div className="p-4 space-y-4 border-t border-slate-200 dark:border-slate-800">
-                    {document.versions.map((ver: any, i: number) => (
+                    {docData.versions.map((ver: any, i: number) => (
                       <div key={i} className="border border-slate-200 dark:border-slate-800 rounded-lg p-4 bg-slate-50 dark:bg-[#0a0a0a]">
                         <div className="flex justify-between items-center mb-2">
                            <h4 className="font-semibold text-slate-800">
