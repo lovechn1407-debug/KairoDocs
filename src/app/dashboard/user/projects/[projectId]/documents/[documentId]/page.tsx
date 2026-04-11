@@ -237,7 +237,7 @@ export default function DocumentEditor() {
                       <div key={i} className="border border-slate-200 dark:border-slate-800 rounded-lg p-4 bg-slate-50 dark:bg-[#0a0a0a]">
                         <div className="flex justify-between items-center mb-2">
                            <h4 className="font-semibold text-slate-800">
-                             Version {i + 1} {i === document.versions.length - 1 && <span className="text-blue-600 dark:text-blue-400 font-bold ml-1">(Current)</span>}
+                             Version {i + 1} {i === docData.versions.length - 1 && <span className="text-blue-600 dark:text-blue-400 font-bold ml-1">(Current)</span>}
                            </h4>
                            <span className="text-xs text-slate-500 dark:text-slate-400">{new Date(ver.savedAt).toLocaleString()}</span>
                         </div>
